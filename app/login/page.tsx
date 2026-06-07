@@ -16,7 +16,9 @@ import { IconInput } from "@/components/auth/IconInput"
 import { FormAlert } from "@/components/FormAlert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import {githubProvider,googleProvider} from "@/lib/firebaseConfig"
+import { auth} from "@/lib/firebaseConfig"
+import { signInWithPopup } from "firebase/auth"
 import {
   Card,
   CardContent,
@@ -26,7 +28,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-
+import { FaGithub } from "react-icons/fa";
+import { FaGoogle } from "react-icons/fa";
 type FormStatus = {
   type: "success" | "error"
   message: string
@@ -38,7 +41,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<FormStatus>(null)
-
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus(null)
@@ -65,7 +67,28 @@ export default function LoginPage() {
       setLoading(false)
     }
   }
-
+  const handlegithubLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, githubProvider)
+      setStatus({ type: "success", message: "Welcome back! Redirecting to dashboard…" })
+      setTimeout(() => router.push("/dashboard"), 1200)
+      console.log(result)
+    } catch (error) {
+      console.error(error)
+      setStatus({ type: "error", message: "Invalid email or password" })
+    }
+  }
+  const handlegoogleLogin = async () => {
+    try {
+      const result = await signInWithPopup(auth, googleProvider)
+      setStatus({ type: "success", message: "Welcome back! Redirecting to dashboard…" })
+      setTimeout(() => router.push("/dashboard"), 1200)
+      console.log(result)
+    } catch (error) {
+      console.error(error)
+      setStatus({ type: "error", message: "Invalid email or password" })
+    }
+  }
   return (
     <AuthLayout>
       <Card className="w-full max-w-md border-border/60 shadow-xl">
@@ -147,6 +170,28 @@ export default function LoginPage() {
                   Log in
                 </>
               )}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-xl"
+              size="lg"
+              disabled={loading}
+              onClick={handlegithubLogin}
+            >
+              <FaGithub className="size-4" />
+              Sign in with Github
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              className="w-full rounded-xl"
+              size="lg"
+              disabled={loading}
+              onClick={handlegoogleLogin}
+            >
+              <FaGoogle className="size-4" />
+              Sign in with Google
             </Button>
           </form>
         </CardContent>
