@@ -11,7 +11,7 @@ const navLinks = [
   { label: "Trips", href: "/#trips" },
 ]
 
-export function Navbar() {
+function Navbar() {
   const [open, setOpen] = useState(false)
 
   return (
@@ -90,3 +90,5 @@ export function Navbar() {
     </header>
   )
 }
+
+export { Navbar }

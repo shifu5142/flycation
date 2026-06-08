@@ -13,7 +13,7 @@ type ToastContextValue = {
 
 const ToastContext = createContext<ToastContextValue | null>(null)
 
-export function ToastProvider({ children }: { children: React.ReactNode }) {
+function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<ToastItem[]>([])
 
   const toast = useCallback((message: string, variant: ToastVariant = "success") => {
@@ -61,10 +61,12 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function useToast() {
+function useToast() {
   const ctx = useContext(ToastContext)
   if (!ctx) {
     throw new Error("useToast must be used within a ToastProvider")
   }
   return ctx
 }
+
+export { ToastProvider, useToast }

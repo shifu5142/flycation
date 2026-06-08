@@ -22,7 +22,7 @@ interface TripPageProps {
   params: Promise<{ id: string }>
 }
 
-export default async function TripPage({ params }: TripPageProps) {
+async function TripPage({ params }: TripPageProps) {
   const { id } = await params
   const trip = getTripById(id)
 
@@ -160,3 +160,5 @@ export default async function TripPage({ params }: TripPageProps) {
     </DashboardShell>
   )
 }
+
+export default TripPage

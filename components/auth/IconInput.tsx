@@ -10,7 +10,7 @@ interface IconInputProps extends React.ComponentProps<typeof Input> {
   id: string
 }
 
-export function IconInput({
+function IconInput({
   label,
   icon: Icon,
   id,
@@ -34,3 +34,5 @@ export function IconInput({
     </div>
   )
 }
+
+export { IconInput }

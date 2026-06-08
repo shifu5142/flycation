@@ -52,7 +52,7 @@ const features = [
   },
 ]
 
-export default function LandingPage() {
+function LandingPage() {
   const { toast } = useToast()
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
@@ -279,3 +279,5 @@ export default function LandingPage() {
     </div>
   )
 }
+
+export default LandingPage

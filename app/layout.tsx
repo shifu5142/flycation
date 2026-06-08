@@ -18,10 +18,10 @@ export const metadata: Metadata = {
   description: "Plan your perfect trip in seconds with AI-powered itineraries, flights, and hotels.",
 };
 
-export default function RootLayout({
+function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode;
+  children: React.ReactNode
 }>) {
   return (
     <html
@@ -32,5 +32,7 @@ export default function RootLayout({
         <ToastProvider>{children}</ToastProvider>
       </body>
     </html>
-  );
+  )
 }
+
+export default RootLayout

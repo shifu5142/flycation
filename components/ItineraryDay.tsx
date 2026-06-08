@@ -14,7 +14,7 @@ interface ItineraryDayProps {
   day: ItineraryDayType
 }
 
-export function ItineraryDay({ day }: ItineraryDayProps) {
+function ItineraryDay({ day }: ItineraryDayProps) {
   return (
     <Card className="transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-3">
@@ -44,3 +44,5 @@ export function ItineraryDay({ day }: ItineraryDayProps) {
     </Card>
   )
 }
+
+export { ItineraryDay }

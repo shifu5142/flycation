@@ -45,7 +45,7 @@ const travelStyles = [
 
 const themes = ["Default", "Ocean", "Forest", "Sunset"]
 
-export default function SettingsPage() {
+function SettingsPage() {
   const { toast } = useToast()
   const [name, setName] = useState(mockUser.name)
   const [currency, setCurrency] = useState(mockUser.currency)
@@ -284,3 +284,5 @@ export default function SettingsPage() {
     </DashboardShell>
   )
 }
+
+export default SettingsPage

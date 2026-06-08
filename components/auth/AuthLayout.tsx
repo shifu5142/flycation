@@ -21,7 +21,7 @@ interface AuthLayoutProps {
   className?: string
 }
 
-export function AuthLayout({ children, className }: AuthLayoutProps) {
+function AuthLayout({ children, className }: AuthLayoutProps) {
   return (
     <div className="relative flex min-h-screen">
       {/* Decorative panel */}
@@ -88,3 +88,5 @@ export function AuthLayout({ children, className }: AuthLayoutProps) {
     </div>
   )
 }
+
+export { AuthLayout }

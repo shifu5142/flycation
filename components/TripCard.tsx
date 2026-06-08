@@ -16,41 +16,59 @@ import {
 interface TripCardProps {
   trip: Trip
   showViewButton?: boolean
+  size?: "default" | "large" | "compact"
 }
 
-export function TripCard({ trip, showViewButton = true }: TripCardProps) {
+function TripCard({
+  trip,
+  showViewButton = true,
+  size = "default",
+}: TripCardProps) {
+  const imageHeight =
+    size === "large"
+      ? "h-56 sm:h-64 lg:h-72"
+      : size === "compact"
+        ? "h-32"
+        : "h-40"
+
   return (
-    <Card className="group overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
-      <div className="relative h-40 overflow-hidden">
+    <Card className="group overflow-hidden transition-all duration-300 hover:shadow-md">
+      <div className={`relative overflow-hidden ${imageHeight}`}>
         <img
           src={trip.image}
           alt={trip.destination}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
         />
-        <Badge className="absolute top-3 right-3 bg-background/90 text-foreground backdrop-blur-sm">
+        <Badge className="absolute top-2 right-2 bg-background/90 text-xs text-foreground backdrop-blur-sm">
           {trip.country}
         </Badge>
       </div>
-      <CardHeader className="pb-2">
-        <CardTitle className="flex items-center gap-2">
-          <MapPin className="size-4 text-primary" />
+      <CardHeader className={size === "compact" ? "gap-1 p-4 pb-1" : "pb-2"}>
+        <CardTitle
+          className={`flex items-center gap-1.5 ${size === "compact" ? "text-base" : ""}`}
+        >
+          <MapPin className="size-3.5 text-primary" />
           {trip.destination}
         </CardTitle>
-        <CardDescription>{trip.description}</CardDescription>
+        {size !== "compact" && (
+          <CardDescription className="line-clamp-2">{trip.description}</CardDescription>
+        )}
       </CardHeader>
-      <CardContent className="space-y-2 pb-2">
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Calendar className="size-3.5" />
-          {trip.durationDays} days · {trip.dates}
+      <CardContent className={`space-y-1 ${size === "compact" ? "px-4 pb-3 pt-0" : "pb-2"}`}>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground sm:text-sm">
+          <Calendar className="size-3.5 shrink-0" />
+          <span className="truncate">
+            {trip.durationDays} days · {trip.dates}
+          </span>
         </div>
-        <div className="flex items-center gap-2 text-sm font-medium text-primary">
-          <DollarSign className="size-3.5" />
+        <div className="flex items-center gap-2 text-xs font-medium text-primary sm:text-sm">
+          <DollarSign className="size-3.5 shrink-0" />
           ${trip.pricePerPerson.toLocaleString()} / person
         </div>
       </CardContent>
       {showViewButton && (
-        <CardFooter>
-          <Button asChild className="w-full">
+        <CardFooter className={size === "compact" ? "p-4 pt-0" : undefined}>
+          <Button asChild className="w-full" size={size === "compact" ? "sm" : "default"}>
             <Link href={`/trip/${trip.id}`}>View trip</Link>
           </Button>
         </CardFooter>
@@ -58,3 +76,5 @@ export function TripCard({ trip, showViewButton = true }: TripCardProps) {
     </Card>
   )
 }
+
+export { TripCard }

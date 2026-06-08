@@ -33,7 +33,7 @@ type FormStatus = {
   message: string
 } | null
 
-export default function RegisterPage() {
+function RegisterPage() {
   const router = useRouter()
   const [form, setForm] = useState({
     first_name: "",
@@ -228,3 +228,5 @@ export default function RegisterPage() {
     </AuthLayout>
   )
 }
+
+export default RegisterPage

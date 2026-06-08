@@ -8,7 +8,7 @@ type FormAlertProps = {
   onDismiss?: () => void
 }
 
-export function FormAlert({ type, message, onDismiss }: FormAlertProps) {
+function FormAlert({ type, message, onDismiss }: FormAlertProps) {
   const isSuccess = type === "success"
 
   return (
@@ -40,3 +40,5 @@ export function FormAlert({ type, message, onDismiss }: FormAlertProps) {
     </div>
   )
 }
+
+export { FormAlert }

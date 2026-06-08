@@ -9,7 +9,7 @@ interface ExampleTripCardProps {
   trip: Trip
 }
 
-export function ExampleTripCard({ trip }: ExampleTripCardProps) {
+function ExampleTripCard({ trip }: ExampleTripCardProps) {
   return (
     <Link href={`/trip/${trip.id}`} className="group block">
       <Card className="overflow-hidden border-border/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
@@ -50,3 +50,5 @@ export function ExampleTripCard({ trip }: ExampleTripCardProps) {
     </Link>
   )
 }
+
+export { ExampleTripCard }

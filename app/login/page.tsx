@@ -35,7 +35,7 @@ type FormStatus = {
   message: string
 } | null
 
-export default function LoginPage() {
+function LoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -214,3 +214,5 @@ export default function LoginPage() {
     </AuthLayout>
   )
 }
+
+export default LoginPage

@@ -85,7 +85,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   )
 }
 
-export function Sidebar() {
+function Sidebar() {
   return (
     <aside className="hidden w-64 shrink-0 border-r bg-card lg:block">
       <SidebarContent />
@@ -93,7 +93,7 @@ export function Sidebar() {
   )
 }
 
-export function MobileSidebar() {
+function MobileSidebar() {
   return (
     <Sheet>
       <SheetTrigger asChild>
@@ -108,7 +108,7 @@ export function MobileSidebar() {
   )
 }
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
+function DashboardShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen">
       <Sidebar />
@@ -124,3 +124,5 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+export { Sidebar, MobileSidebar, DashboardShell }

@@ -1,132 +1,312 @@
 "use client"
 
-import { useState } from "react"
-import Link from "next/link"
-import { Plus, Sparkles } from "lucide-react"
+import { useEffect, useState } from "react"
+import {
+  ArrowLeftRight,
+  ChevronDown,
+  Minus,
+  Plane,
+  Plus,
+  Search,
+  Sparkles,
+  Users,
+} from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { AirportSearchInput } from "@/components/AirportSearchInput"
 import { TripCard } from "@/components/TripCard"
 import { useToast } from "@/components/ToastProvider"
 import { mockTrips } from "@/lib/mockTrips"
 import { mockUser } from "@/lib/mockUser"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
-import { Skeleton } from "@/components/ui/skeleton"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Separator } from "@/components/ui/separator"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { createClient } from "@supabase/supabase-js"
+import { useRouter } from "next/navigation"
+import { auth } from "@/lib/firebaseConfig"
 
-export default function DashboardPage() {
+const TRAVEL_CLASSES = [
+  "Economy",
+  "Premium Economy",
+  "Business",
+  "First",
+] as const
+
+type TripType = "oneway" | "roundtrip"
+type TravelClass = (typeof TRAVEL_CLASSES)[number]
+
+function DashboardPage() {
+  const router = useRouter()
   const { toast } = useToast()
-  const [loading, setLoading] = useState(false)
-  const [dialogOpen, setDialogOpen] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [tripType, setTripType] = useState<TripType>("roundtrip")
+  const [from, setFrom] = useState("TLV")
+  const [to, setTo] = useState("BKK")
+  const [departure, setDeparture] = useState("")
+  const [returnDate, setReturnDate] = useState("")
+  const [passengers, setPassengers] = useState(1)
+  const [travelClass, setTravelClass] = useState<TravelClass>("Economy")
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
+  )
 
-  const handleCreateTrip = () => {
-    setLoading(true)
-    setDialogOpen(false)
+  const handleSearchFlights = () => {
+    if (!from.trim() || !to.trim()) {
+      toast("Please enter departure and destination airports", "info")
+      return
+    }
+    if (!departure) {
+      toast("Please select a departure date", "info")
+      return
+    }
+    if (tripType === "roundtrip" && !returnDate) {
+      toast("Please select a return date", "info")
+      return
+    }
+
+    setSearching(true)
     setTimeout(() => {
-      setLoading(false)
-      toast("New Flycation created!")
-    }, 2000)
+      setSearching(false)
+      const route =
+        tripType === "oneway" ? `${from} → ${to}` : `${from} ↔ ${to}`
+      toast(`Searching flights: ${route}`)
+    }, 1500)
   }
+
+  const swapAirports = () => {
+    setFrom(to)
+    setTo(from)
+  }
+
+  useEffect(() => {
+    const fetchTrips = async () => {
+      const user = auth.currentUser
+      if (user?.uid) {
+        // user exists and is authenticated
+      } else {
+        router.push("/login")
+      }
+    }
+    fetchTrips()
+  }, [router])
 
   return (
     <DashboardShell>
-      <div className="mx-auto max-w-6xl space-y-8">
-        {/* Welcome card */}
-        <Card className="border-0 bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg">
-          <CardHeader>
-            <CardTitle className="text-2xl">
-              Welcome back, {mockUser.name.split(" ")[0]}! 👋
-            </CardTitle>
-            <CardDescription className="text-blue-100">
-              You have {mockTrips.length} trips planned. Ready for your next adventure?
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-              <DialogTrigger asChild>
-                <Button variant="secondary" size="lg">
-                  <Plus className="size-4" />
-                  Create new Flycation
+      <div className="mx-auto max-w-6xl space-y-6">
+        {/* Header */}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-2xl font-semibold tracking-tight">
+              Welcome back, {mockUser.name.split(" ")[0]} 👋
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              {mockTrips.length} saved trips · plan your next flight below
+            </p>
+          </div>
+        </div>
+
+        {/* Compact flight search */}
+        <Card className="border-border/60 shadow-sm">
+          <CardContent className="space-y-4 p-4 sm:p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <h2 className="text-base font-semibold">Search flights</h2>
+              <Tabs
+                value={tripType}
+                onValueChange={(value) => setTripType(value as TripType)}
+              >
+                <TabsList className="h-9">
+                  <TabsTrigger value="oneway" className="px-3 text-xs sm:text-sm">
+                    Direct
+                  </TabsTrigger>
+                  <TabsTrigger value="roundtrip" className="px-3 text-xs sm:text-sm">
+                    Round trip
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-12 lg:items-end">
+              <div className="sm:col-span-2 lg:col-span-2">
+                <AirportSearchInput
+                  id="from"
+                  label="From"
+                  value={from}
+                  onChange={setFrom}
+                  placeholder="Select origin"
+                />
+              </div>
+
+              <div className="flex items-end justify-center sm:col-span-2 lg:col-span-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  className="size-9 shrink-0 rounded-lg"
+                  onClick={swapAirports}
+                  aria-label="Swap airports"
+                >
+                  <ArrowLeftRight className="size-3.5" />
                 </Button>
-              </DialogTrigger>
-              <DialogContent>
-                <DialogHeader>
-                  <DialogTitle>Create a new Flycation</DialogTitle>
-                  <DialogDescription>
-                    Tell us where you want to go and AI will plan everything for you.
-                  </DialogDescription>
-                </DialogHeader>
-                <div className="flex flex-col gap-3 pt-2">
-                  <Button onClick={handleCreateTrip}>
-                    <Sparkles className="size-4" />
-                    Generate with AI
+              </div>
+
+              <div className="sm:col-span-2 lg:col-span-2">
+                <AirportSearchInput
+                  id="to"
+                  label="To"
+                  value={to}
+                  onChange={setTo}
+                  placeholder="Select destination"
+                />
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+                <Label htmlFor="departure" className="text-xs text-muted-foreground">
+                  Departure
+                </Label>
+                <Input
+                  id="departure"
+                  type="date"
+                  value={departure}
+                  onChange={(e) => setDeparture(e.target.value)}
+                  className="h-9 rounded-lg"
+                />
+              </div>
+
+              {tripType === "roundtrip" ? (
+                <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
+                  <Label htmlFor="return" className="text-xs text-muted-foreground">
+                    Return
+                  </Label>
+                  <Input
+                    id="return"
+                    type="date"
+                    value={returnDate}
+                    min={departure || undefined}
+                    onChange={(e) => setReturnDate(e.target.value)}
+                    className="h-9 rounded-lg"
+                  />
+                </div>
+              ) : (
+                <div className="hidden lg:col-span-2 lg:block" />
+              )}
+
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+                <Label className="text-xs text-muted-foreground">Passengers</Label>
+                <div className="flex h-9 items-center gap-1 rounded-lg border border-input bg-background px-2">
+                  <Users className="size-3.5 shrink-0 text-muted-foreground" />
+                  <span className="flex-1 text-center text-xs font-medium">
+                    {passengers}
+                  </span>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 rounded-md"
+                    onClick={() => setPassengers((n) => Math.max(1, n - 1))}
+                    disabled={passengers <= 1}
+                    aria-label="Decrease passengers"
+                  >
+                    <Minus className="size-3" />
                   </Button>
-                  <Button variant="outline" asChild>
-                    <Link href="/">Use trip planner</Link>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="size-6 rounded-md"
+                    onClick={() => setPassengers((n) => Math.min(9, n + 1))}
+                    disabled={passengers >= 9}
+                    aria-label="Increase passengers"
+                  >
+                    <Plus className="size-3" />
                   </Button>
                 </div>
-              </DialogContent>
-            </Dialog>
+              </div>
+
+              <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
+                <Label className="text-xs text-muted-foreground">Class</Label>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="outline"
+                      className="h-9 w-full justify-between rounded-lg px-2 text-xs font-normal"
+                    >
+                      <span className="truncate">{travelClass}</span>
+                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-44">
+                    {TRAVEL_CLASSES.map((option) => (
+                      <DropdownMenuItem
+                        key={option}
+                        onClick={() => setTravelClass(option)}
+                      >
+                        {option}
+                      </DropdownMenuItem>
+                    ))}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+
+              <div className="sm:col-span-2 lg:col-span-1">
+                <Button
+                  className="h-9 w-full rounded-lg"
+                  onClick={handleSearchFlights}
+                  disabled={searching}
+                >
+                  {searching ? (
+                    <Plane className="size-3.5 animate-pulse" />
+                  ) : (
+                    <Search className="size-3.5" />
+                  )}
+                  <span className="text-sm">Search</span>
+                </Button>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
-        {/* Trips list */}
-        <div>
-          <div className="mb-6 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">My Trips</h2>
-              <p className="text-sm text-muted-foreground">
-                Your planned adventures
-              </p>
-            </div>
+        <Separator />
+
+        {/* Trips */}
+        <section>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-lg font-semibold">My Trips</h2>
+            <span className="text-sm text-muted-foreground">
+              {mockTrips.length} total
+            </span>
           </div>
 
-          {loading ? (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => (
-                <div key={i} className="space-y-3">
-                  <Skeleton className="h-40 w-full" />
-                  <Skeleton className="h-4 w-3/4" />
-                  <Skeleton className="h-4 w-1/2" />
-                </div>
-              ))}
-            </div>
-          ) : mockTrips.length === 0 ? (
-            <Card className="py-16 text-center">
+          {mockTrips.length === 0 ? (
+            <Card className="py-12 text-center">
               <CardContent>
-                <Sparkles className="mx-auto size-12 text-muted-foreground/50" />
-                <h3 className="mt-4 text-lg font-semibold">No trips yet</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  Create your first Flycation to get started
+                <Sparkles className="mx-auto size-10 text-muted-foreground/50" />
+                <h3 className="mt-3 font-semibold">No trips yet</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Search flights above to get started
                 </p>
-                <Button className="mt-6" onClick={() => setDialogOpen(true)}>
-                  <Plus className="size-4" />
-                  Create new Flycation
-                </Button>
               </CardContent>
             </Card>
           ) : (
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {mockTrips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} />
+                <TripCard key={trip.id} trip={trip} size="compact" />
               ))}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </DashboardShell>
   )
 }
+
+export default DashboardPage

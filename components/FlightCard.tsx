@@ -15,7 +15,7 @@ interface FlightCardProps {
   flight: Flight
 }
 
-export function FlightCard({ flight }: FlightCardProps) {
+function FlightCard({ flight }: FlightCardProps) {
   return (
     <Card className="transition-all duration-300 hover:shadow-md">
       <CardHeader className="pb-3">
@@ -48,3 +48,5 @@ export function FlightCard({ flight }: FlightCardProps) {
     </Card>
   )
 }
+
+export { FlightCard }
