@@ -1,18 +1,20 @@
 "use client"
 
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import {
-  LayoutDashboard,
-  Map,
   Compass,
-  Settings,
-  Plane,
+  LayoutDashboard,
+  LogOut,
+  Map,
   Menu,
+  Plane,
+  Settings,
 } from "lucide-react"
 
+import { useAuth } from "@/components/AuthProvider"
+import { logoutUser } from "@/lib/auth"
 import { cn } from "@/lib/utils"
-import { mockUser } from "@/lib/mockUser"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
@@ -28,6 +30,19 @@ const navItems = [
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
+  const router = useRouter()
+  const { displayName, firstName, email, avatar, loading } = useAuth()
+  const initials = (firstName || displayName).charAt(0).toUpperCase()
+
+  const handleLogout = async () => {
+    try {
+      await logoutUser()
+      onNavigate?.()
+      router.push("/login")
+    } catch (error) {
+      console.error(error)
+    }
+  }
 
   return (
     <div className="flex h-full flex-col">
@@ -71,15 +86,29 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
       <Separator />
 
-      <div className="flex items-center gap-3 p-4">
-        <Avatar>
-          <AvatarImage src={mockUser.avatar} alt={mockUser.name} />
-          <AvatarFallback>{mockUser.name.charAt(0)}</AvatarFallback>
-        </Avatar>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium">{mockUser.name}</p>
-          <p className="truncate text-xs text-muted-foreground">{mockUser.email}</p>
+      <div className="space-y-3 p-4">
+        <div className="flex items-center gap-3">
+          <Avatar>
+            {avatar && <AvatarImage src={avatar} alt={displayName} />}
+            <AvatarFallback>{initials}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {loading ? "Loading…" : displayName}
+            </p>
+            <p className="truncate text-xs text-muted-foreground">
+              {loading ? "…" : email}
+            </p>
+          </div>
         </div>
+        <Button
+          variant="outline"
+          className="w-full justify-start gap-2 rounded-xl"
+          onClick={handleLogout}
+        >
+          <LogOut className="size-4" />
+          Log out
+        </Button>
       </div>
     </div>
   )

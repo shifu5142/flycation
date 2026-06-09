@@ -15,9 +15,8 @@ import {
 import { DashboardShell } from "@/components/Sidebar"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
 import { TripCard } from "@/components/TripCard"
+import { useAuth } from "@/components/AuthProvider"
 import { useToast } from "@/components/ToastProvider"
-import { mockTrips } from "@/lib/mockTrips"
-import { mockUser } from "@/lib/mockUser"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
@@ -47,6 +46,7 @@ type TravelClass = (typeof TRAVEL_CLASSES)[number]
 function DashboardPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { firstName, loading: authLoading } = useAuth()
   const [searching, setSearching] = useState(false)
   const [tripType, setTripType] = useState<TripType>("roundtrip")
   const [from, setFrom] = useState("TLV")
@@ -55,12 +55,28 @@ function DashboardPage() {
   const [returnDate, setReturnDate] = useState("")
   const [passengers, setPassengers] = useState(1)
   const [travelClass, setTravelClass] = useState<TravelClass>("Economy")
+  const [trips, setTrips] = useState<any[]>([]);
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
   )
+  useEffect(() => {
+    const fetchTrips = async () => {
+      const { data, error } = await supabase
+        .from("trips")
+        .select("*");
 
-  const handleSearchFlights = () => {
+      if (error) {
+        console.error(error);
+        return;
+      }
+
+      setTrips(data);
+    };
+
+    fetchTrips();
+  }, []);
+  const handleSearchFlights = async() => {
     if (!from.trim() || !to.trim()) {
       toast("Please enter departure and destination airports", "info")
       return
@@ -73,16 +89,26 @@ function DashboardPage() {
       toast("Please select a return date", "info")
       return
     }
-
+    const {error}= await supabase.from("trips").insert({
+      from,
+      to,
+      departure,
+      returnDate,
+      passengers,
+      travelClass,
+      user_id: auth.currentUser,
+    })
+    if (error) {
+      toast(error.message)
+      return
+    }
+    toast("Flights searched successfully", "success")
+    
     setSearching(true)
     setTimeout(() => {
-      setSearching(false)
-      const route =
-        tripType === "oneway" ? `${from} → ${to}` : `${from} ↔ ${to}`
-      toast(`Searching flights: ${route}`)
     }, 1500)
   }
-
+  
   const swapAirports = () => {
     setFrom(to)
     setTo(from)
@@ -94,7 +120,7 @@ function DashboardPage() {
       if (user?.uid) {
         // user exists and is authenticated
       } else {
-        router.push("/login")
+        router.push("/not-found")
       }
     }
     fetchTrips()
@@ -107,10 +133,10 @@ function DashboardPage() {
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-2xl font-semibold tracking-tight">
-              Welcome back, {mockUser.name.split(" ")[0]} 👋
+              Welcome back, {authLoading ? "…" : firstName} 👋
             </h1>
             <p className="text-sm text-muted-foreground">
-              {mockTrips.length} saved trips · plan your next flight below
+              {trips.length} saved trips · plan your next flight below
             </p>
           </div>
         </div>
@@ -282,11 +308,11 @@ function DashboardPage() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-lg font-semibold">My Trips</h2>
             <span className="text-sm text-muted-foreground">
-              {mockTrips.length} total
+              {trips.length} total
             </span>
           </div>
 
-          {mockTrips.length === 0 ? (
+          {trips.length === 0 ? (
             <Card className="py-12 text-center">
               <CardContent>
                 <Sparkles className="mx-auto size-10 text-muted-foreground/50" />
@@ -298,7 +324,7 @@ function DashboardPage() {
             </Card>
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {mockTrips.map((trip) => (
+              {trips.map((trip) => (
                 <TripCard key={trip.id} trip={trip} size="compact" />
               ))}
             </div>
