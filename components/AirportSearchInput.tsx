@@ -7,7 +7,8 @@ import { cn } from "@/lib/utils"
 import {
   COUNTRY_AIRPORTS,
   filterCountries,
-  findCountryByAirport,
+  findCountryLocation,
+  toLocationName,
 } from "@/lib/countries"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -17,7 +18,7 @@ interface AirportSearchInputProps {
   id: string
   label: string
   value: string
-  onChange: (airport: string) => void
+  onChange: (location: string) => void
   placeholder?: string
   className?: string
 }
@@ -36,11 +37,11 @@ function AirportSearchInput({
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState("")
 
-  const selected = findCountryByAirport(value)
+  const selected = findCountryLocation(value)
   const results = filterCountries(query)
 
   const displayValue = selected
-    ? `${selected.airport} · ${selected.country}`
+    ? selected.country
     : value || ""
 
   useEffect(() => {
@@ -66,8 +67,8 @@ function AirportSearchInput({
     }
   }, [open])
 
-  const handleSelect = (airport: string) => {
-    onChange(airport)
+  const handleSelect = (country: string) => {
+    onChange(toLocationName(country))
     setOpen(false)
     setQuery("")
   }
@@ -134,10 +135,11 @@ function AirportSearchInput({
                   <li key={`${item.country}-${item.airport}`}>
                     <button
                       type="button"
-                      onClick={() => handleSelect(item.airport)}
+                      onClick={() => handleSelect(item.country)}
                       className={cn(
                         "flex w-full items-center justify-between gap-2 rounded-lg px-3 py-2 text-left text-sm transition-colors hover:bg-muted",
-                        value === item.airport && "bg-primary/10 text-primary"
+                        value === toLocationName(item.country) &&
+                          "bg-primary/10 text-primary"
                       )}
                     >
                       <span className="min-w-0">

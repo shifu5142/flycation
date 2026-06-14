@@ -1,8 +1,9 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import {
   ArrowLeftRight,
+  CalendarDays,
   ChevronDown,
   Minus,
   Plane,
@@ -14,6 +15,7 @@ import {
 
 import { DashboardShell } from "@/components/Sidebar"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
+import { SavedTripCard } from "@/components/SavedTripCard"
 import { TripCard } from "@/components/TripCard"
 import { useAuth } from "@/components/AuthProvider"
 import { useToast } from "@/components/ToastProvider"
@@ -29,10 +31,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { createClient } from "@supabase/supabase-js"
-import { useRouter } from "next/navigation"
-import { auth } from "@/lib/firebaseConfig"
-
+import { supabase } from "@/app/services/supabase/client"
+import { cn } from "@/lib/utils"
 const TRAVEL_CLASSES = [
   "Economy",
   "Premium Economy",
@@ -44,39 +44,40 @@ type TripType = "oneway" | "roundtrip"
 type TravelClass = (typeof TRAVEL_CLASSES)[number]
 
 function DashboardPage() {
-  const router = useRouter()
   const { toast } = useToast()
-  const { firstName, loading: authLoading } = useAuth()
+  const { firstName, loading: authLoading, user } = useAuth()
   const [searching, setSearching] = useState(false)
   const [tripType, setTripType] = useState<TripType>("roundtrip")
-  const [from, setFrom] = useState("TLV")
-  const [to, setTo] = useState("BKK")
+  const [from, setFrom] = useState("israel")
+  const [to, setTo] = useState("thailand")
   const [departure, setDeparture] = useState("")
   const [returnDate, setReturnDate] = useState("")
   const [passengers, setPassengers] = useState(1)
   const [travelClass, setTravelClass] = useState<TravelClass>("Economy")
   const [trips, setTrips] = useState<any[]>([]);
-  const supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY!
-  )
+  const [countriesImage, setCountriesImage] = useState<string>("");
+  const countriesApiUrl = `https://api.unsplash.com/search/photos?query=${to.toLowerCase()}&per_page=1`
+
   useEffect(() => {
     const fetchTrips = async () => {
       const { data, error } = await supabase
         .from("trips")
-        .select("*");
+        .select("*")
 
       if (error) {
-        console.error(error);
-        return;
+        console.error(error)
+        return
       }
 
-      setTrips(data);
-    };
+      setTrips(data ?? [])
+    }
 
-    fetchTrips();
-  }, []);
-  const handleSearchFlights = async() => {
+    fetchTrips()
+  }, [])
+
+  const handleSearchFlights = async () => {
+    try {
+    console.log(from, to,countriesImage);
     if (!from.trim() || !to.trim()) {
       toast("Please enter departure and destination airports", "info")
       return
@@ -89,42 +90,55 @@ function DashboardPage() {
       toast("Please select a return date", "info")
       return
     }
-    const {error}= await supabase.from("trips").insert({
+    const {
+      data: { user: supabaseUser },
+    } = await supabase.auth.getUser()
+    if (!supabaseUser) {
+      toast("You must be logged in to save a trip", "info")
+      return
+    }
+
+    setSearching(true)
+        const res = await fetch(countriesApiUrl, {
+          headers: {
+            Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`,
+          },
+        });
+        console.log(res);
+        if (res.ok) {
+          const countries = await res.json();
+          setCountriesImage(countries.results[0].urls.small);
+        } else {
+          console.error("Failed to fetch countries");
+        }
+    const { error } = await supabase.from("trips").insert({
       from,
       to,
       departure,
       returnDate,
       passengers,
       travelClass,
-      user_id: auth.currentUser,
+      user_id: supabaseUser.id,
+      imageUrl: countriesImage,
     })
     if (error) {
-      toast(error.message)
+      toast(error.message, "info")
       return
     }
+    setSearching(false)
+
+
     toast("Flights searched successfully", "success")
-    
-    setSearching(true)
-    setTimeout(() => {
-    }, 1500)
+    } catch(error: any) {
+      toast(error.message, "info")
+      return
+    }
   }
-  
+
   const swapAirports = () => {
     setFrom(to)
     setTo(from)
   }
-
-  useEffect(() => {
-    const fetchTrips = async () => {
-      const user = auth.currentUser
-      if (user?.uid) {
-        // user exists and is authenticated
-      } else {
-        router.push("/not-found")
-      }
-    }
-    fetchTrips()
-  }, [router])
 
   return (
     <DashboardShell>
@@ -195,31 +209,23 @@ function DashboardPage() {
                 />
               </div>
 
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                <Label htmlFor="departure" className="text-xs text-muted-foreground">
-                  Departure
-                </Label>
-                <Input
+              <div className="sm:col-span-2 lg:col-span-2">
+                <DatePickerField
                   id="departure"
-                  type="date"
+                  label="Departure"
                   value={departure}
-                  onChange={(e) => setDeparture(e.target.value)}
-                  className="h-9 rounded-lg"
+                  onChange={setDeparture}
                 />
               </div>
 
               {tripType === "roundtrip" ? (
-                <div className="space-y-1.5 sm:col-span-2 lg:col-span-2">
-                  <Label htmlFor="return" className="text-xs text-muted-foreground">
-                    Return
-                  </Label>
-                  <Input
+                <div className="sm:col-span-2 lg:col-span-2">
+                  <DatePickerField
                     id="return"
-                    type="date"
+                    label="Return"
                     value={returnDate}
                     min={departure || undefined}
-                    onChange={(e) => setReturnDate(e.target.value)}
-                    className="h-9 rounded-lg"
+                    onChange={setReturnDate}
                   />
                 </div>
               ) : (
@@ -301,6 +307,27 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
+        {countriesImage && (
+          <section>
+            <h2 className="mb-4 text-lg font-semibold">Latest search</h2>
+            <div className="max-w-sm">
+              <SavedTripCard
+                trip={{
+                  id: "latest",
+                  tripType,
+                  from,
+                  to,
+                  departure,
+                  returnDate,
+                  passengers,
+                  travelClass,
+                  imageUrl: countriesImage,
+                }}
+              />
+            </div>
+          </section>
+        )}
+
         <Separator />
 
         {/* Trips */}
@@ -332,6 +359,60 @@ function DashboardPage() {
         </section>
       </div>
     </DashboardShell>
+  )
+}
+
+interface DatePickerFieldProps {
+  id: string
+  label: string
+  value: string
+  onChange: (value: string) => void
+  min?: string
+}
+
+function DatePickerField({ id, label, value, onChange, min }: DatePickerFieldProps) {
+  const inputRef = useRef<HTMLInputElement>(null)
+
+  function openPicker() {
+    const input = inputRef.current
+    if (!input) return
+    if (typeof input.showPicker === "function") {
+      input.showPicker()
+    } else {
+      input.focus()
+    }
+  }
+
+  return (
+    <div className="space-y-1.5">
+      <Label htmlFor={id} className="text-xs text-muted-foreground">
+        {label}
+      </Label>
+      <div className="relative">
+        <button
+          type="button"
+          aria-label={`Choose ${label.toLowerCase()} date`}
+          onClick={openPicker}
+          className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <CalendarDays className="size-3.5" />
+        </button>
+        <input
+          ref={inputRef}
+          id={id}
+          type="date"
+          value={value}
+          min={min}
+          onChange={(e) => onChange(e.target.value)}
+          onClick={openPicker}
+          className={cn(
+            "flex h-9 w-full cursor-pointer rounded-lg border border-input bg-background py-2 pr-3 pl-9 text-sm shadow-sm transition-colors",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+          )}
+        />
+      </div>
+    </div>
   )
 }
 

@@ -30,6 +30,7 @@ function AuthLayout({ children, className }: AuthLayoutProps) {
           src="/airplane-view.jpg"
           alt="Aerial view from airplane window over tropical islands"
           fill
+          sizes="(max-width: 1024px) 0vw, 45vw"
           className="object-cover"
           priority
         />

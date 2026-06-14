@@ -10,15 +10,12 @@ import {
   Mail,
   UserPlus,
 } from "lucide-react"
-import { loginUser } from "@/lib/auth"
+import { supabase } from "@/app/services/supabase/client"
 import { AuthLayout } from "@/components/auth/AuthLayout"
 import { IconInput } from "@/components/auth/IconInput"
 import { FormAlert } from "@/components/FormAlert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import {githubProvider,googleProvider} from "@/lib/firebaseConfig"
-import { auth} from "@/lib/firebaseConfig"
-import { signInWithPopup } from "firebase/auth"
 import {
   Card,
   CardContent,
@@ -28,8 +25,9 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { FaGithub } from "react-icons/fa";
-import { FaGoogle } from "react-icons/fa";
+import { FaGithub } from "react-icons/fa"
+import { FaGoogle } from "react-icons/fa"
+
 type FormStatus = {
   type: "success" | "error"
   message: string
@@ -56,9 +54,18 @@ function LoginPage() {
 
     setLoading(true)
     try {
-      await loginUser(email, password)
-      setStatus({ type: "success", message: "Welcome back! Redirecting to dashboard…" })
-      setTimeout(() => router.push("/dashboard"), 1200)
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
+      if (error) {
+        throw error
+      }
+      if (data.session) {
+        router.replace("/dashboard")
+        return
+      }
+      setStatus({ type: "error", message: "Sign-in failed. Please try again." })
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Invalid email or password"
@@ -67,26 +74,50 @@ function LoginPage() {
       setLoading(false)
     }
   }
-  const handlegithubLogin = async () => {
+
+  const handlegoogleLogin = async () => {
+    setLoading(true)
+    setStatus(null)
     try {
-      const result = await signInWithPopup(auth, githubProvider)
-      setStatus({ type: "success", message: "Welcome back! Redirecting to dashboard…" })
-      setTimeout(() => router.push("/dashboard"), 1200)
-      console.log(result)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "google",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) {
+        throw error
+      }
     } catch (error) {
       console.error(error)
-      setStatus({ type: "error", message: "Invalid email or password" })
+      setStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "Google sign-in failed",
+      })
+      setLoading(false)
     }
   }
-  const handlegoogleLogin = async () => {
+
+  const handlegithubLogin = async () => {
+    setLoading(true)
+    setStatus(null)
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      setStatus({ type: "success", message: "Welcome back! Redirecting to dashboard…" })
-      setTimeout(() => router.push("/dashboard"), 1200)
-      console.log(result)
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: "github",
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      })
+      if (error) {
+        throw error
+      }
     } catch (error) {
       console.error(error)
-      setStatus({ type: "error", message: "Invalid email or password" })
+      setStatus({
+        type: "error",
+        message: error instanceof Error ? error.message : "GitHub sign-in failed",
+      })
+      setLoading(false)
     }
   }
   return (
@@ -177,10 +208,10 @@ function LoginPage() {
               className="w-full rounded-xl"
               size="lg"
               disabled={loading}
-              onClick={handlegithubLogin}
+              onClick={handlegoogleLogin}
             >
-              <FaGithub className="size-4" />
-              Sign in with Github
+              <FaGoogle className="size-4" />
+              Sign in with Google
             </Button>
             <Button
               type="button"
@@ -188,10 +219,10 @@ function LoginPage() {
               className="w-full rounded-xl"
               size="lg"
               disabled={loading}
-              onClick={handlegoogleLogin}
+              onClick={handlegithubLogin}
             >
-              <FaGoogle className="size-4" />
-              Sign in with Google
+              <FaGithub className="size-4" />
+              Sign in with Github
             </Button>
           </form>
         </CardContent>

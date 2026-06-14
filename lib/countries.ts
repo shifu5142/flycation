@@ -202,10 +202,27 @@ export const COUNTRY_AIRPORTS: CountryAirport[] = [
   { country: "Zimbabwe", city: "Harare", airport: "HRE" },
 ]
 
+export function toLocationName(country: string) {
+  return country.trim().toLowerCase()
+}
+
 export function findCountryByAirport(code: string) {
   return COUNTRY_AIRPORTS.find(
     (item) => item.airport.toUpperCase() === code.toUpperCase()
   )
+}
+
+export function findCountryByName(name: string) {
+  const normalized = name.trim().toLowerCase()
+  if (!normalized) return undefined
+
+  return COUNTRY_AIRPORTS.find(
+    (item) => item.country.toLowerCase() === normalized
+  )
+}
+
+export function findCountryLocation(value: string) {
+  return findCountryByName(value) ?? findCountryByAirport(value)
 }
 
 export function filterCountries(query: string) {

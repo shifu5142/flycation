@@ -1,7 +1,7 @@
 -- Run in Supabase SQL Editor (Dashboard → SQL → New query)
 
 create table if not exists public.users (
-  id uuid primary key default gen_random_uuid(),
+  id text primary key,
   first_name text not null,
   last_name text not null,
   email text not null unique,

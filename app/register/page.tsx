@@ -11,7 +11,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react"
-import { registerUser } from "@/lib/auth"
+import { supabase } from "@/app/services/supabase/client"
 import { AuthLayout } from "@/components/auth/AuthLayout"
 import { IconInput } from "@/components/auth/IconInput"
 import { FormAlert } from "@/components/FormAlert"
@@ -77,14 +77,23 @@ function RegisterPage() {
 
     setLoading(true)
     try {
-      await registerUser(
-        form.first_name,
-        form.last_name,
-        form.email,
-        form.password
-      )
-      setStatus({ type: "success", message: "Account created! Redirecting to dashboard…" })
-      setTimeout(() => router.push("/dashboard"), 1200)
+      const {data, error} = await supabase.auth.signUp({
+        email: form.email,
+        password: form.password,
+        options: {
+          data: {
+            first_name: form.first_name,
+            last_name: form.last_name,
+          },
+        },
+      })
+      if (error) {
+        throw error
+      }
+      if (data.user) {
+        setStatus({ type: "success", message: "Account created! Redirecting to login page…" })
+        setTimeout(() => router.push("/login"), 1500)
+      }
     } catch (error) {
       const message =
         error instanceof Error ? error.message : "Failed to create account"

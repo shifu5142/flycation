@@ -11,7 +11,7 @@ import type { User } from "firebase/auth"
 import { onAuthStateChanged } from "firebase/auth"
 
 import { getUserProfile } from "@/lib/auth"
-import { auth } from "@/lib/firebaseConfig"
+import { auth } from "@/app/services/auth/firebaseConfig"
 
 type UserProfile = {
   first_name?: string
