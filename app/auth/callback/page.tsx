@@ -46,7 +46,7 @@ function CallbackPage() {
       }
 
       const { data, error } = await supabase.auth.getSession()
-
+      console.log("getSession result:", data, error);
       console.error("[auth/callback] getSession:", {
         hasSession: Boolean(data.session),
         userId: data.session?.user?.id ?? null,

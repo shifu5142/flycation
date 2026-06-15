@@ -32,7 +32,8 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const { displayName, firstName, email, avatar, loading } = useAuth()
-  const initials = (firstName || displayName).charAt(0).toUpperCase()
+  const name = displayName || firstName || email.split("@")[0] || "Traveler"
+  const initials = (firstName || name).charAt(0).toUpperCase() || "?"
 
   const handleLogout = async () => {
     try {
@@ -97,15 +98,15 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="space-y-3 p-4">
         <div className="flex items-center gap-3">
           <Avatar>
-            {avatar && <AvatarImage src={avatar} alt={displayName} />}
+            {avatar && <AvatarImage src={avatar} alt={name} />}
             <AvatarFallback>{initials}</AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium">
-              {loading ? "Loading…" : displayName}
+              {loading ? "Loading…" : name}
             </p>
             <p className="truncate text-xs text-muted-foreground">
-              {loading ? "…" : email}
+              {loading ? "…" : email || "—"}
             </p>
           </div>
         </div>

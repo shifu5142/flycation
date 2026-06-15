@@ -8,6 +8,7 @@ import { useTheme } from "@/components/ThemeProvider"
 import { useToast } from "@/components/ToastProvider"
 import { supabase } from "@/app/services/supabase/client"
 import { colorThemes } from "@/lib/themes"
+import { getAvatarFromMetadata, getNameFromMetadata } from "@/lib/user-display"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -45,15 +46,6 @@ const travelStyles = [
   { value: "luxury", label: "Luxury", description: "Premium stays and experiences" },
 ] as const
 
-function getUserName(metadata: Record<string, unknown> | undefined) {
-  const first = typeof metadata?.first_name === "string" ? metadata.first_name : ""
-  const last = typeof metadata?.last_name === "string" ? metadata.last_name : ""
-  const full = `${first} ${last}`.trim()
-  if (full) return full
-  if (typeof metadata?.full_name === "string") return metadata.full_name
-  return ""
-}
-
 function SettingsPage() {
   const { toast } = useToast()
   const { colorTheme, darkMode, setColorTheme, toggleDarkMode } = useTheme()
@@ -71,13 +63,9 @@ function SettingsPage() {
       if (!user) return
 
       setUserEmail(user.email ?? "")
-      setUserName(getUserName(user.user_metadata))
+      setUserName(getNameFromMetadata(user.user_metadata))
 
-      const image =
-        (typeof user.user_metadata?.avatar_url === "string" && user.user_metadata.avatar_url) ||
-        (typeof user.user_metadata?.picture === "string" && user.user_metadata.picture) ||
-        null
-      setAvatar(image)
+      setAvatar(getAvatarFromMetadata(user.user_metadata))
     }
 
     loadUser()

@@ -7,11 +7,10 @@ import {
   useMemo,
   useState,
 } from "react"
-import type { User } from "firebase/auth"
-import { onAuthStateChanged } from "firebase/auth"
+import type { User } from "@supabase/supabase-js"
 
-import { getUserProfile } from "@/lib/auth"
-import { auth } from "@/app/services/auth/firebaseConfig"
+import { createClient } from "@/lib/supabase/client"
+import { getAvatarFromMetadata, getNameFromMetadata } from "@/lib/user-display"
 
 type UserProfile = {
   first_name?: string
@@ -31,20 +30,29 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
-function getDisplayName(user: User | null, profile: UserProfile | null) {
+function getDisplayName(
+  user: User | null,
+  profile: UserProfile | null
+) {
   if (profile?.first_name) {
     return `${profile.first_name} ${profile.last_name ?? ""}`.trim()
   }
-  if (user?.displayName) return user.displayName
+
+  const fromMetadata = getNameFromMetadata(user?.user_metadata)
+  if (fromMetadata) return fromMetadata
+
   if (user?.email) return user.email.split("@")[0]
-  return "Traveler"
+  return ""
 }
 
 function getFirstName(user: User | null, profile: UserProfile | null) {
   if (profile?.first_name) return profile.first_name
-  if (user?.displayName) return user.displayName.split(" ")[0]
+
+  const fromMetadata = getNameFromMetadata(user?.user_metadata)
+  if (fromMetadata) return fromMetadata.split(" ")[0]
+
   if (user?.email) return user.email.split("@")[0]
-  return "Traveler"
+  return ""
 }
 
 function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -53,24 +61,41 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      setUser(firebaseUser)
+    const supabase = createClient()
 
-      if (firebaseUser) {
-        try {
-          const data = await getUserProfile(firebaseUser.uid)
-          setProfile(data)
-        } catch {
-          setProfile(null)
-        }
+    const loadProfile = async (authUser: User) => {
+      const { data } = await supabase
+        .from("users")
+        .select("first_name, last_name, email")
+        .eq("id", authUser.id)
+        .maybeSingle()
+
+      setProfile(data ?? null)
+    }
+
+    const syncUser = async (authUser: User | null) => {
+      setUser(authUser)
+
+      if (authUser) {
+        await loadProfile(authUser)
       } else {
         setProfile(null)
       }
 
       setLoading(false)
+    }
+
+    supabase.auth.getUser().then(({ data }) => {
+      syncUser(data.user)
     })
 
-    return () => unsubscribe()
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      syncUser(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
   }, [])
 
   const value = useMemo<AuthContextValue>(
@@ -81,7 +106,7 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       displayName: getDisplayName(user, profile),
       firstName: getFirstName(user, profile),
       email: profile?.email ?? user?.email ?? "",
-      avatar: user?.photoURL ?? null,
+      avatar: getAvatarFromMetadata(user?.user_metadata),
     }),
     [user, profile, loading]
   )
