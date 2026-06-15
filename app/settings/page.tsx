@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Camera, Moon, Sun, Trash2 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { useTheme } from "@/components/ThemeProvider"
 import { useToast } from "@/components/ToastProvider"
-import { mockUser } from "@/lib/mockUser"
+import { supabase } from "@/app/services/supabase/client"
+import { colorThemes } from "@/lib/themes"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -43,22 +45,43 @@ const travelStyles = [
   { value: "luxury", label: "Luxury", description: "Premium stays and experiences" },
 ] as const
 
-const themes = ["Default", "Ocean", "Forest", "Sunset"]
+function getUserName(metadata: Record<string, unknown> | undefined) {
+  const first = typeof metadata?.first_name === "string" ? metadata.first_name : ""
+  const last = typeof metadata?.last_name === "string" ? metadata.last_name : ""
+  const full = `${first} ${last}`.trim()
+  if (full) return full
+  if (typeof metadata?.full_name === "string") return metadata.full_name
+  return ""
+}
 
 function SettingsPage() {
   const { toast } = useToast()
-  const [name, setName] = useState(mockUser.name)
-  const [currency, setCurrency] = useState(mockUser.currency)
-  const [travelStyle, setTravelStyle] = useState(mockUser.travelStyle)
-  const [darkMode, setDarkMode] = useState(false)
-  const [theme, setTheme] = useState("Default")
+  const { colorTheme, darkMode, setColorTheme, toggleDarkMode } = useTheme()
+  const [name, setName] = useState("")
+  const [userName, setUserName] = useState("")
+  const [userEmail, setUserEmail] = useState("")
+  const [avatar, setAvatar] = useState<string | null>(null)
+  const [currency, setCurrency] = useState("USD")
+  const [travelStyle, setTravelStyle] = useState<"budget" | "balanced" | "luxury">("balanced")
 
-  const toggleDarkMode = () => {
-    const next = !darkMode
-    setDarkMode(next)
-    document.documentElement.classList.toggle("dark", next)
-    toast(next ? "Dark mode enabled" : "Light mode enabled")
-  }
+  useEffect(() => {
+    const loadUser = async () => {
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
+      if (!user) return
+
+      setUserEmail(user.email ?? "")
+      setUserName(getUserName(user.user_metadata))
+
+      const image =
+        (typeof user.user_metadata?.avatar_url === "string" && user.user_metadata.avatar_url) ||
+        (typeof user.user_metadata?.picture === "string" && user.user_metadata.picture) ||
+        null
+      setAvatar(image)
+    }
+
+    loadUser()
+  }, [])
 
   const handleSaveProfile = () => {
     toast("Profile updated!")
@@ -96,8 +119,10 @@ function SettingsPage() {
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                   <Avatar className="size-20">
-                    <AvatarImage src={mockUser.avatar} alt={name} />
-                    <AvatarFallback>{name.charAt(0)}</AvatarFallback>
+                    {avatar && <AvatarImage src={avatar} alt={userName || "User"} />}
+                    <AvatarFallback>
+                      {(userName || userEmail || "U").charAt(0).toUpperCase()}
+                    </AvatarFallback>
                   </Avatar>
                   <Button variant="outline" size="sm" onClick={() => toast("Avatar upload is UI only")}>
                     <Camera className="size-4" />
@@ -110,13 +135,14 @@ function SettingsPage() {
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
+                    placeholder={userName}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="email">Email</Label>
                   <Input
                     id="email"
-                    value={mockUser.email}
+                    value={userEmail}
                     readOnly
                     className="bg-muted"
                   />
@@ -207,14 +233,17 @@ function SettingsPage() {
                     <div>
                       <p className="font-medium">Dark mode</p>
                       <p className="text-sm text-muted-foreground">
-                        Toggle dark theme (UI only)
+                        Switch between light and dark mode
                       </p>
                     </div>
                   </div>
                   <Button
                     variant={darkMode ? "default" : "outline"}
                     size="sm"
-                    onClick={toggleDarkMode}
+                    onClick={() => {
+                      toggleDarkMode()
+                      toast(!darkMode ? "Dark mode enabled" : "Light mode enabled")
+                    }}
                   >
                     {darkMode ? "On" : "Off"}
                   </Button>
@@ -223,19 +252,19 @@ function SettingsPage() {
                 <div className="space-y-3">
                   <Label>Theme</Label>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                    {themes.map((t) => (
+                    {colorThemes.map((t) => (
                       <button
-                        key={t}
+                        key={t.id}
                         type="button"
                         onClick={() => {
-                          setTheme(t)
-                          toast(`Theme: ${t}`)
+                          setColorTheme(t.id)
+                          toast(`Theme: ${t.label}`)
                         }}
                         className={`rounded-xl border p-4 text-sm font-medium transition-all hover:shadow-sm ${
-                          theme === t ? "border-primary bg-primary/5" : "border-border"
+                          colorTheme === t.id ? "border-primary bg-primary/5" : "border-border"
                         }`}
                       >
-                        {t}
+                        {t.label}
                       </button>
                     ))}
                   </div>

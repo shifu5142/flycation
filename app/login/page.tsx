@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import {
   Loader2,
   Lock,
@@ -10,7 +10,8 @@ import {
   Mail,
   UserPlus,
 } from "lucide-react"
-import { supabase } from "@/app/services/supabase/client"
+import { createClient } from "@/lib/supabase/client"
+import { formatOAuthError } from "@/lib/format-oauth-error"
 import { AuthLayout } from "@/components/auth/AuthLayout"
 import { IconInput } from "@/components/auth/IconInput"
 import { FormAlert } from "@/components/FormAlert"
@@ -33,12 +34,35 @@ type FormStatus = {
   message: string
 } | null
 
-function LoginPage() {
+function LoginPageContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<FormStatus>(null)
+  const supabase = createClient()
+
+  useEffect(() => {
+    const oauthError = searchParams.get("error")
+    if (oauthError) {
+      console.error("[login] OAuth error:", oauthError)
+      setStatus({ type: "error", message: formatOAuthError(oauthError) })
+    }
+  }, [searchParams])
+
+  useEffect(() => {
+    const checkSessionExists = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        setStatus({ type: "success", message: "You are already logged in" })
+        setTimeout(() => {
+          router.replace("/dashboard")
+        }, 1500)
+      }
+    }
+    checkSessionExists().catch(console.error)
+  }, [])
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setStatus(null)
@@ -62,7 +86,10 @@ function LoginPage() {
         throw error
       }
       if (data.session) {
-        router.replace("/dashboard")
+        setStatus({ type: "success", message: "Sign-in successful" })
+        setTimeout(() => {
+          router.replace("/dashboard")
+        }, 1500)
         return
       }
       setStatus({ type: "error", message: "Sign-in failed. Please try again." })
@@ -243,6 +270,14 @@ function LoginPage() {
         </CardFooter>
       </Card>
     </AuthLayout>
+  )
+}
+
+function LoginPage() {
+  return (
+    <Suspense fallback={null}>
+      <LoginPageContent />
+    </Suspense>
   )
 }
 

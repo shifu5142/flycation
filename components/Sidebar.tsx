@@ -13,7 +13,7 @@ import {
 } from "lucide-react"
 
 import { useAuth } from "@/components/AuthProvider"
-import { logoutUser } from "@/lib/auth"
+import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -36,9 +36,17 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   const handleLogout = async () => {
     try {
-      await logoutUser()
+      const supabase = createClient()
+      const { error } = await supabase.auth.signOut()
+
+      if (error) {
+        console.error(error)
+        return
+      }
+
       onNavigate?.()
-      router.push("/login")
+      router.replace("/login")
+      router.refresh()
     } catch (error) {
       console.error(error)
     }

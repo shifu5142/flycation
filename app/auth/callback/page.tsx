@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { Loader2, Plane } from "lucide-react"
 
 import { AuthLayout } from "@/components/auth/AuthLayout"
-import { supabase } from "@/app/services/supabase/client"
+import { createClient } from "@/lib/supabase/client"
 import {
   Card,
   CardContent,
@@ -18,17 +18,51 @@ function CallbackPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const checkSession = async () => {
-      const { data } = await supabase.auth.getSession()
+    const handle = async () => {
+      const supabase = createClient()
+      const params = new URLSearchParams(window.location.search)
 
-      if (data.session) {
-        router.push("/dashboard")
-      } else {
-        router.push("/login")
+      const errorDescription = params.get("error_description")
+      const oauthError = params.get("error")
+
+      if (errorDescription || oauthError) {
+        console.error("[auth/callback] OAuth error:", {
+          error: oauthError,
+          error_description: errorDescription,
+        })
+        router.replace(
+          `/login?error=${encodeURIComponent(errorDescription ?? oauthError ?? "OAuth sign-in failed")}`
+        )
+        return
       }
+
+      const code = params.get("code")
+      if (code) {
+        const { error } = await supabase.auth.exchangeCodeForSession(code)
+        if (error) {
+          router.replace(`/login?error=${encodeURIComponent(error.message)}`)
+          return
+        }
+      }
+
+      const { data, error } = await supabase.auth.getSession()
+
+      console.error("[auth/callback] getSession:", {
+        hasSession: Boolean(data.session),
+        userId: data.session?.user?.id ?? null,
+        error: error?.message ?? null,
+      })
+
+      if (data.session?.user) {
+        router.replace("/dashboard")
+        router.refresh()
+        return
+      }
+
+      router.replace("/login")
     }
 
-    checkSession()
+    handle()
   }, [router])
 
   return (

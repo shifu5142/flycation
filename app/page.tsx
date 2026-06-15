@@ -91,14 +91,15 @@ function LandingPage() {
 
         <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-14 lg:px-8 lg:pt-16">
           <div className="mx-auto max-w-3xl text-center">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-4 py-1.5 text-sm text-primary shadow-sm backdrop-blur-sm">
+            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/25 px-4 py-1.5 text-sm text-white shadow-sm backdrop-blur-sm [text-shadow:0_1px_3px_rgba(0,0,0,0.35)]">
               <Sparkles className="size-3.5" />
               AI travel planner
             </div>
-            <h1 className="text-balance text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
+
+            <h1 className="text-balance text-4xl font-bold tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.4)] sm:text-5xl lg:text-6xl">
               Plan your <span className="text-primary">Flycation</span> in seconds
             </h1>
-            <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-muted-foreground sm:text-lg">
+            <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.35)] sm:text-lg">
               Tell us where you want to go. We&apos;ll handle flights, hotels, and
               day-by-day itineraries — all powered by AI.
             </p>
