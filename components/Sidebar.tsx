@@ -3,6 +3,7 @@
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import {
+  BookOpen,
   Compass,
   LayoutDashboard,
   LogOut,
@@ -10,6 +11,7 @@ import {
   Menu,
   Plane,
   Settings,
+  Sparkles,
 } from "lucide-react"
 
 import { useAuth } from "@/components/AuthProvider"
@@ -23,8 +25,10 @@ import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/dashboard", label: "My Trips", icon: Map },
-  { href: "/dashboard", label: "Explore", icon: Compass },
+  { href: "/ai-trip-planner", label: "AI Trip Planner", icon: Sparkles },
+  { href: "/my-trips", label: "My Trips", icon: Map },
+  { href: "/explore", label: "Explore", icon: Compass },
+  { href: "/my-bookings", label: "My Bookings", icon: BookOpen },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
@@ -70,18 +74,19 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
             const Icon = item.icon
             const isActive =
               pathname === item.href ||
-              (item.label === "Settings" && pathname === "/settings") ||
-              (item.label !== "Settings" && pathname.startsWith("/trip"))
+              (item.href === "/my-trips" &&
+                (pathname.startsWith("/my-trips") ||
+                  pathname.startsWith("/trip")))
 
             return (
               <Link
-                key={item.label}
+                key={item.href}
                 href={item.href}
                 onClick={onNavigate}
                 className={cn(
-                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors",
+                  "flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-all",
                   isActive
-                    ? "bg-primary/10 text-primary"
+                    ? "bg-primary/10 text-primary shadow-sm"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground"
                 )}
               >
