@@ -54,7 +54,11 @@ function SavedTripCard({ trip }: SavedTripCardProps) {
           alt={`${trip.from} to ${trip.to}`}
           className="size-full object-cover"
         />
-        <Badge className="absolute top-2 right-2 bg-background/90 text-xs backdrop-blur-sm">
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent"
+          aria-hidden
+        />
+        <Badge className="absolute top-2 right-2 border border-white/25 bg-black/75 px-2.5 py-1 text-xs font-semibold text-white shadow-lg backdrop-blur-sm">
           {trip.tripType === "oneway" ? "Direct" : "Round trip"}
         </Badge>
       </div>

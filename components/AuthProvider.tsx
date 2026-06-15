@@ -10,13 +10,11 @@ import {
 import type { User } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
-import { getAvatarFromMetadata, getNameFromMetadata } from "@/lib/user-display"
-
-type UserProfile = {
-  first_name?: string
-  last_name?: string
-  email?: string
-}
+import { getAvatarFromMetadata } from "@/lib/user-display"
+import {
+  profileFromAuthUser,
+  type UserProfile,
+} from "@/lib/user-profile"
 
 type AuthContextValue = {
   user: User | null
@@ -38,19 +36,12 @@ function getDisplayName(
     return `${profile.first_name} ${profile.last_name ?? ""}`.trim()
   }
 
-  const fromMetadata = getNameFromMetadata(user?.user_metadata)
-  if (fromMetadata) return fromMetadata
-
   if (user?.email) return user.email.split("@")[0]
   return ""
 }
 
 function getFirstName(user: User | null, profile: UserProfile | null) {
   if (profile?.first_name) return profile.first_name
-
-  const fromMetadata = getNameFromMetadata(user?.user_metadata)
-  if (fromMetadata) return fromMetadata.split(" ")[0]
-
   if (user?.email) return user.email.split("@")[0]
   return ""
 }
@@ -63,25 +54,9 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const supabase = createClient()
 
-    const loadProfile = async (authUser: User) => {
-      const { data } = await supabase
-        .from("users")
-        .select("first_name, last_name, email")
-        .eq("id", authUser.id)
-        .maybeSingle()
-
-      setProfile(data ?? null)
-    }
-
-    const syncUser = async (authUser: User | null) => {
+    const syncUser = (authUser: User | null) => {
       setUser(authUser)
-
-      if (authUser) {
-        await loadProfile(authUser)
-      } else {
-        setProfile(null)
-      }
-
+      setProfile(profileFromAuthUser(authUser))
       setLoading(false)
     }
 

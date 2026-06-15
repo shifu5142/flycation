@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/components/AuthProvider";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { ToastProvider } from "@/components/ToastProvider";
+import { THEME_INIT_SCRIPT } from "@/lib/themes";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -31,14 +33,12 @@ function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
       suppressHydrationWarning
     >
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){try{var d=localStorage.getItem("flycation-dark-mode")==="true";var t=localStorage.getItem("flycation-theme");if(d)document.documentElement.classList.add("dark");if(t&&t!=="default")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`,
-          }}
-        />
-      </head>
       <body className="min-h-full flex flex-col">
+        <Script
+          id="flycation-theme-init"
+          strategy="beforeInteractive"
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>{children}</ToastProvider>

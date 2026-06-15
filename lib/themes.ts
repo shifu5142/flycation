@@ -1,6 +1,8 @@
 export const THEME_STORAGE_KEY = "flycation-theme"
 export const DARK_MODE_STORAGE_KEY = "flycation-dark-mode"
 
+export const THEME_INIT_SCRIPT = `(function(){try{var d=localStorage.getItem("${DARK_MODE_STORAGE_KEY}")==="true";var t=localStorage.getItem("${THEME_STORAGE_KEY}");if(d)document.documentElement.classList.add("dark");if(t&&t!=="default")document.documentElement.setAttribute("data-theme",t);}catch(e){}})();`
+
 export const colorThemes = [
   { id: "default", label: "Default" },
   { id: "ocean", label: "Ocean" },

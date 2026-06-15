@@ -63,7 +63,9 @@ function TripCard({
         </div>
         <div className="flex items-center gap-2 text-xs font-medium text-primary sm:text-sm">
           <DollarSign className="size-3.5 shrink-0" />
-          ${trip.pricePerPerson.toLocaleString()} / person
+          {trip.pricePerPerson != null
+            ? `$${trip.pricePerPerson.toLocaleString()} / person`
+            : "Price TBD"}
         </div>
       </CardContent>
       {showViewButton && (

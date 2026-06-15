@@ -15,8 +15,7 @@ import {
 
 import { DashboardShell } from "@/components/Sidebar"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
-import { SavedTripCard } from "@/components/SavedTripCard"
-import { TripCard } from "@/components/TripCard"
+import { SavedTripCard, type SavedTrip } from "@/components/SavedTripCard"
 import { useAuth } from "@/components/AuthProvider"
 import { useToast } from "@/components/ToastProvider"
 import { Button } from "@/components/ui/button"
@@ -43,6 +42,22 @@ const TRAVEL_CLASSES = [
 type TripType = "oneway" | "roundtrip"
 type TravelClass = (typeof TRAVEL_CLASSES)[number]
 
+function toSavedTrip(row: Record<string, unknown>): SavedTrip {
+  const returnDate = row.returnDate ?? row.return_date
+
+  return {
+    id: row.id as string | number,
+    tripType: returnDate ? "roundtrip" : "oneway",
+    from: String(row.from ?? ""),
+    to: String(row.to ?? ""),
+    departure: String(row.departure ?? ""),
+    returnDate: returnDate ? String(returnDate) : null,
+    passengers: Number(row.passengers ?? 1),
+    travelClass: String(row.travelClass ?? row.travel_class ?? "Economy"),
+    imageUrl: (row.imageUrl ?? row.image_url) as string | null | undefined,
+  }
+}
+
 function DashboardPage() {
   const { toast } = useToast()
   const { firstName, loading: authLoading, user } = useAuth()
@@ -54,8 +69,8 @@ function DashboardPage() {
   const [returnDate, setReturnDate] = useState("")
   const [passengers, setPassengers] = useState(1)
   const [travelClass, setTravelClass] = useState<TravelClass>("Economy")
-  const [trips, setTrips] = useState<any[]>([]);
-  const [countriesImage, setCountriesImage] = useState<string>("");
+  const [trips, setTrips] = useState<SavedTrip[]>([])
+  const [countriesImageUrl, setCountriesImageUrl] = useState<string>("");
   const countriesApiUrl = `https://api.unsplash.com/search/photos?query=${to.toLowerCase()}&per_page=1`
 
   useEffect(() => {
@@ -69,7 +84,9 @@ function DashboardPage() {
         return
       }
 
-      setTrips(data ?? [])
+      setTrips(
+        (data ?? []).map((row: Record<string, unknown>) => toSavedTrip(row))
+      )
     }
 
     fetchTrips()
@@ -77,68 +94,90 @@ function DashboardPage() {
 
   const handleSearchFlights = async () => {
     try {
-    console.log(from, to,countriesImage);
-    if (!from.trim() || !to.trim()) {
-      toast("Please enter departure and destination airports", "info")
-      return
-    }
-    if (!departure) {
-      toast("Please select a departure date", "info")
-      return
-    }
-    if (tripType === "roundtrip" && !returnDate) {
-      toast("Please select a return date", "info")
-      return
-    }
-    const {
-      data: { user: supabaseUser },
-    } = await supabase.auth.getUser()
-    if (!supabaseUser) {
-      toast("You must be logged in to save a trip", "info")
-      return
-    }
-
-    setSearching(true)
+      setSearching(true);
+  
+      if (!from.trim() || !to.trim()) {
+        toast("Please enter departure and destination airports", "info");
+        setSearching(false);
+        return;
+      }
+  
+      if (!departure) {
+        toast("Please select a departure date", "info");
+        setSearching(false);
+        return;
+      }
+  
+      if (tripType === "roundtrip" && !returnDate) {
+        toast("Please select a return date", "info");
+        setSearching(false);
+        return;
+      }
+  
+      const {
+        data: { user: supabaseUser },
+      } = await supabase.auth.getUser();
+  
+      if (!supabaseUser) {
+        toast("You must be logged in to save a trip", "info");
+        setSearching(false);
+        return;
+      }
+  
+      // 🔥 IMAGE FETCH (safe local variable)
+      let imageUrl = null;
+  
+      try {
         const res = await fetch(countriesApiUrl, {
           headers: {
             Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`,
           },
         });
-        console.log(res);
+  
         if (res.ok) {
           const countries = await res.json();
-          setCountriesImage(countries.results[0].urls.small);
-        } else {
-          console.error("Failed to fetch countries");
+          imageUrl = countries.results?.[0]?.urls?.small || null;
         }
-    const { error } = await supabase.from("trips").insert({
-      from,
-      to,
-      departure,
-      returnDate,
-      passengers,
-      travelClass,
-      user_id: supabaseUser.id,
-      imageUrl: countriesImage,
-    })
-    if (error) {
-      toast(error.message, "info")
-      return
+      } catch (err) {
+        console.error("Image fetch failed:", err);
+      }
+  
+      // 🔥 SUPABASE INSERT
+      const { data, error } = await supabase
+        .from("trips")
+        .insert({
+          from,
+          to,
+          departure,
+          returnDate: returnDate ? returnDate : null,
+          passengers,
+          travelClass,
+          user_id: supabaseUser.id,
+          imageUrl,
+        })
+        .select()
+        .single();
+  
+      if (error) {
+        console.error(error);
+        toast("Failed to save trip", "info");
+        setSearching(false);
+        return;
+      }
+  
+      setTrips((prev) => [
+        toSavedTrip(data as Record<string, unknown>),
+        ...prev,
+      ]);
+  
+      toast("Flights searched successfully", "success");
+    } catch (error: any) {
+      console.error(error);
+      toast(error.message || "Something went wrong", "info");
+    } finally {
+      setSearching(false);
     }
-    setSearching(false)
-
-
-    toast("Flights searched successfully", "success")
-    } catch(error: any) {
-      toast(error.message, "info")
-      return
-    }
-  }
-
-  const swapAirports = () => {
-    setFrom(to)
-    setTo(from)
-  }
+  };
 
   return (
     <DashboardShell>
@@ -192,7 +231,11 @@ function DashboardPage() {
                   variant="outline"
                   size="icon"
                   className="size-9 shrink-0 rounded-lg"
-                  onClick={swapAirports}
+                  onClick={() => {
+                    const temp = from;
+                    setFrom(to);
+                    setTo(temp);
+                  }}
                   aria-label="Swap airports"
                 >
                   <ArrowLeftRight className="size-3.5" />
@@ -307,7 +350,7 @@ function DashboardPage() {
           </CardContent>
         </Card>
 
-        {countriesImage && (
+        {countriesImageUrl && (
           <section>
             <h2 className="mb-4 text-lg font-semibold">Latest search</h2>
             <div className="max-w-sm">
@@ -321,7 +364,7 @@ function DashboardPage() {
                   returnDate,
                   passengers,
                   travelClass,
-                  imageUrl: countriesImage,
+                  imageUrl: countriesImageUrl,
                 }}
               />
             </div>
@@ -352,7 +395,7 @@ function DashboardPage() {
           ) : (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {trips.map((trip) => (
-                <TripCard key={trip.id} trip={trip} size="compact" />
+                <SavedTripCard key={trip.id} trip={trip} />
               ))}
             </div>
           )}

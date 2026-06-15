@@ -83,7 +83,8 @@ function LoginPageContent() {
         password,
       })
       if (error) {
-        throw error
+        setStatus({ type: "error", message: 'Invalid email or password' })
+        return
       }
       if (data.session) {
         setStatus({ type: "success", message: "Sign-in successful" })
