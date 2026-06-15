@@ -1,9 +1,8 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useState } from "react"
 import {
   ArrowLeftRight,
-  CalendarDays,
   ChevronDown,
   Minus,
   Plane,
@@ -15,6 +14,7 @@ import {
 
 import { DashboardShell } from "@/components/Sidebar"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
+import { FlightDateRangePicker } from "@/components/FlightDateRangePicker"
 import { SavedTripCard, type SavedTrip } from "@/components/SavedTripCard"
 import { useAuth } from "@/components/AuthProvider"
 import { useToast } from "@/components/ToastProvider"
@@ -26,12 +26,9 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { supabase } from "@/app/services/supabase/client"
-import { cn } from "@/lib/utils"
 const TRAVEL_CLASSES = [
   "Economy",
   "Premium Economy",
@@ -70,6 +67,7 @@ function DashboardPage() {
   const [passengers, setPassengers] = useState(1)
   const [travelClass, setTravelClass] = useState<TravelClass>("Economy")
   const [trips, setTrips] = useState<SavedTrip[]>([])
+  const [deletingTripId, setDeletingTripId] = useState<string | number | null>(null)
   const [countriesImageUrl, setCountriesImageUrl] = useState<string>("");
   const countriesApiUrl = `https://api.unsplash.com/search/photos?query=${to.toLowerCase()}&per_page=1`
 
@@ -91,6 +89,26 @@ function DashboardPage() {
 
     fetchTrips()
   }, [])
+
+  const handleDeleteTrip = async (tripId: string | number) => {
+    setDeletingTripId(tripId)
+
+    const { error } = await supabase.from("trips").delete().eq("id", tripId)
+
+    if (error) {
+      console.error(error)
+      setTimeout(() => {
+        toast("Failed to delete trip", "info")
+        setDeletingTripId(null)
+      }, 1000)
+    }
+
+    setTrips((prev) => prev.filter((trip) => trip.id !== tripId))
+    setTimeout(() => {
+      toast("Trip deleted", "success")
+      setDeletingTripId(null)
+    }, 1000)
+  }
 
   const handleSearchFlights = async () => {
     try {
@@ -181,33 +199,80 @@ function DashboardPage() {
 
   return (
     <DashboardShell>
-      <div className="mx-auto max-w-6xl space-y-6">
-        {/* Header */}
-        <div className="flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              Welcome back, {authLoading ? "…" : firstName} 👋
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {trips.length} saved trips · plan your next flight below
-            </p>
-          </div>
-        </div>
+      <div className="-m-4 flex flex-col sm:-m-6 lg:-m-8">
+        {/* Hero: sky background with header + search */}
+        <section className="relative h-[70vh] w-full shrink-0 overflow-hidden">
+          <img
+            src="/backround-dash.jpg"
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_40%]"
+            aria-hidden
+          />
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-t from-background via-background/25 to-sky-950/30"
+            aria-hidden
+          />
 
-        {/* Compact flight search */}
-        <Card className="border-border/60 shadow-sm">
-          <CardContent className="space-y-4 p-4 sm:p-5">
+          <div className="relative z-10 mx-auto flex h-full max-w-6xl flex-col justify-between px-4 py-5 sm:px-6 sm:py-6 lg:px-8">
+            {/* Header */}
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="space-y-2">
+                <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium tracking-wide text-white/95 uppercase backdrop-blur-md">
+                  <Plane className="size-3.5" />
+                  Your travel hub
+                </p>
+                <div>
+                  <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)] sm:text-4xl">
+                    Welcome back,{" "}
+                    <span className="text-sky-100">
+                      {authLoading ? "…" : firstName}
+                    </span>
+                  </h1>
+                  <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85 drop-shadow-sm">
+                    {trips.length > 0
+                      ? `You have ${trips.length} saved trip${trips.length === 1 ? "" : "s"}. Where will you fly next?`
+                      : "Search below to plan your next adventure."}
+                  </p>
+                </div>
+              </div>
+              <div className="hidden rounded-2xl border border-white/20 bg-white/10 px-4 py-3 text-right backdrop-blur-md sm:block">
+                <p className="text-2xl font-bold tabular-nums text-white">
+                  {trips.length}
+                </p>
+                <p className="text-xs font-medium text-white/75">Saved trips</p>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="pt-4">
+              <Card className="relative overflow-visible rounded-2xl border border-white/35 border-t-2 border-t-primary bg-card/95 shadow-2xl shadow-sky-950/20 backdrop-blur-xl">
+                <CardContent className="space-y-4 p-5 sm:p-6">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-base font-semibold">Search flights</h2>
+              <h2 className="flex items-center gap-2.5 text-lg font-semibold tracking-tight">
+                <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10">
+                  <Search className="size-4" />
+                </span>
+                Search flights
+              </h2>
               <Tabs
                 value={tripType}
-                onValueChange={(value) => setTripType(value as TripType)}
+                onValueChange={(value) => {
+                  const next = value as TripType
+                  setTripType(next)
+                  if (next === "oneway") setReturnDate("")
+                }}
               >
-                <TabsList className="h-9">
-                  <TabsTrigger value="oneway" className="px-3 text-xs sm:text-sm">
+                <TabsList className="h-11 rounded-xl bg-muted/70 p-1 shadow-inner">
+                  <TabsTrigger
+                    value="oneway"
+                    className="rounded-lg px-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
                     Direct
                   </TabsTrigger>
-                  <TabsTrigger value="roundtrip" className="px-3 text-xs sm:text-sm">
+                  <TabsTrigger
+                    value="roundtrip"
+                    className="rounded-lg px-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
+                  >
                     Round trip
                   </TabsTrigger>
                 </TabsList>
@@ -222,6 +287,7 @@ function DashboardPage() {
                   value={from}
                   onChange={setFrom}
                   placeholder="Select origin"
+                  size="lg"
                 />
               </div>
 
@@ -230,7 +296,7 @@ function DashboardPage() {
                   type="button"
                   variant="outline"
                   size="icon"
-                  className="size-9 shrink-0 rounded-lg"
+                  className="size-11 shrink-0 rounded-full border-primary/20 bg-primary/5 shadow-sm transition-colors hover:border-primary/40 hover:bg-primary/10 hover:text-primary"
                   onClick={() => {
                     const temp = from;
                     setFrom(to);
@@ -238,7 +304,7 @@ function DashboardPage() {
                   }}
                   aria-label="Swap airports"
                 >
-                  <ArrowLeftRight className="size-3.5" />
+                  <ArrowLeftRight className="size-4" />
                 </Button>
               </div>
 
@@ -249,44 +315,42 @@ function DashboardPage() {
                   value={to}
                   onChange={setTo}
                   placeholder="Select destination"
+                  size="lg"
                 />
               </div>
 
-              <div className="sm:col-span-2 lg:col-span-2">
-                <DatePickerField
-                  id="departure"
-                  label="Departure"
-                  value={departure}
-                  onChange={setDeparture}
+              <div
+                className={
+                  tripType === "roundtrip"
+                    ? "sm:col-span-2 lg:col-span-3"
+                    : "sm:col-span-2 lg:col-span-2"
+                }
+              >
+                <FlightDateRangePicker
+                  tripType={tripType}
+                  departure={departure}
+                  returnDate={returnDate}
+                  onDepartureChange={setDeparture}
+                  onReturnChange={setReturnDate}
                 />
               </div>
 
-              {tripType === "roundtrip" ? (
-                <div className="sm:col-span-2 lg:col-span-2">
-                  <DatePickerField
-                    id="return"
-                    label="Return"
-                    value={returnDate}
-                    min={departure || undefined}
-                    onChange={setReturnDate}
-                  />
-                </div>
-              ) : (
+              {tripType === "oneway" ? (
                 <div className="hidden lg:col-span-2 lg:block" />
-              )}
+              ) : null}
 
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-                <Label className="text-xs text-muted-foreground">Passengers</Label>
-                <div className="flex h-9 items-center gap-1 rounded-lg border border-input bg-background px-2">
-                  <Users className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="flex-1 text-center text-xs font-medium">
+              <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                <Label className="text-sm font-medium text-muted-foreground">Passengers</Label>
+                <div className="flex h-11 items-center gap-1 rounded-xl border border-input/80 bg-muted/30 px-2 shadow-sm">
+                  <Users className="size-4 shrink-0 text-primary/70" />
+                  <span className="flex-1 text-center text-sm font-semibold tabular-nums">
                     {passengers}
                   </span>
                   <Button
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-6 rounded-md"
+                    className="size-6 rounded-md hover:bg-primary/10 hover:text-primary"
                     onClick={() => setPassengers((n) => Math.max(1, n - 1))}
                     disabled={passengers <= 1}
                     aria-label="Decrease passengers"
@@ -297,7 +361,7 @@ function DashboardPage() {
                     type="button"
                     variant="ghost"
                     size="icon"
-                    className="size-6 rounded-md"
+                    className="size-6 rounded-md hover:bg-primary/10 hover:text-primary"
                     onClick={() => setPassengers((n) => Math.min(9, n + 1))}
                     disabled={passengers >= 9}
                     aria-label="Increase passengers"
@@ -307,16 +371,16 @@ function DashboardPage() {
                 </div>
               </div>
 
-              <div className="space-y-1.5 sm:col-span-2 lg:col-span-1">
-                <Label className="text-xs text-muted-foreground">Class</Label>
+              <div className="space-y-2 sm:col-span-2 lg:col-span-1">
+                <Label className="text-sm font-medium text-muted-foreground">Class</Label>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <Button
                       variant="outline"
-                      className="h-9 w-full justify-between rounded-lg px-2 text-xs font-normal"
+                      className="h-11 w-full justify-between rounded-xl border-input/80 bg-muted/30 px-3 text-sm font-medium shadow-sm hover:bg-muted/50"
                     >
                       <span className="truncate">{travelClass}</span>
-                      <ChevronDown className="size-3.5 shrink-0 text-muted-foreground" />
+                      <ChevronDown className="size-4 shrink-0 text-muted-foreground" />
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-44">
@@ -334,128 +398,120 @@ function DashboardPage() {
 
               <div className="sm:col-span-2 lg:col-span-1">
                 <Button
-                  className="h-9 w-full rounded-lg"
+                  className="h-11 w-full rounded-xl text-base font-semibold shadow-md shadow-primary/20 transition-all hover:shadow-lg hover:shadow-primary/25"
                   onClick={handleSearchFlights}
                   disabled={searching}
                 >
                   {searching ? (
-                    <Plane className="size-3.5 animate-pulse" />
+                    <Plane className="size-4 animate-pulse" />
                   ) : (
-                    <Search className="size-3.5" />
+                    <Search className="size-4" />
                   )}
-                  <span className="text-sm">Search</span>
+                  <span>Search</span>
                 </Button>
               </div>
             </div>
           </CardContent>
-        </Card>
-
-        {countriesImageUrl && (
-          <section>
-            <h2 className="mb-4 text-lg font-semibold">Latest search</h2>
-            <div className="max-w-sm">
-              <SavedTripCard
-                trip={{
-                  id: "latest",
-                  tripType,
-                  from,
-                  to,
-                  departure,
-                  returnDate,
-                  passengers,
-                  travelClass,
-                  imageUrl: countriesImageUrl,
-                }}
-              />
+              </Card>
             </div>
-          </section>
-        )}
-
-        <Separator />
-
-        {/* Trips */}
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">My Trips</h2>
-            <span className="text-sm text-muted-foreground">
-              {trips.length} total
-            </span>
           </div>
 
-          {trips.length === 0 ? (
-            <Card className="py-12 text-center">
-              <CardContent>
-                <Sparkles className="mx-auto size-10 text-muted-foreground/50" />
-                <h3 className="mt-3 font-semibold">No trips yet</h3>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Search flights above to get started
+          {/* wave into content below */}
+          <svg
+            className="absolute right-0 bottom-0 left-0 z-10 h-10 w-full text-background sm:h-14"
+            viewBox="0 0 1440 56"
+            preserveAspectRatio="none"
+            aria-hidden
+          >
+            <path
+              fill="currentColor"
+              d="M0,40 C240,56 480,16 720,36 C960,56 1200,24 1440,40 L1440,56 L0,56 Z"
+            />
+          </svg>
+        </section>
+
+        {/* My Trips — below hero */}
+        <section className="relative bg-gradient-to-b from-background via-background to-muted/30 px-4 pt-4 pb-12 sm:px-6 lg:px-8">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+
+          <div className="mx-auto w-full max-w-6xl">
+            {countriesImageUrl && (
+              <div className="mb-10">
+                <div className="mb-4 flex items-end justify-between gap-3">
+                  <div>
+                    <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+                      Recent
+                    </p>
+                    <h2 className="text-lg font-semibold tracking-tight">
+                      Latest search
+                    </h2>
+                  </div>
+                </div>
+                <div className="max-w-sm">
+                  <SavedTripCard
+                    trip={{
+                      id: "latest",
+                      tripType,
+                      from,
+                      to,
+                      departure,
+                      returnDate,
+                      passengers,
+                      travelClass,
+                      imageUrl: countriesImageUrl,
+                    }}
+                  />
+                </div>
+              </div>
+            )}
+
+            <div className="mb-6 flex flex-wrap items-end justify-between gap-4 border-b border-border/60 pb-5">
+              <div>
+                <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+                  Your journeys
                 </p>
-              </CardContent>
-            </Card>
-          ) : (
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {trips.map((trip) => (
-                <SavedTripCard key={trip.id} trip={trip} />
-              ))}
+                <h2 className="mt-1 flex items-center gap-2 text-2xl font-bold tracking-tight">
+                  <Sparkles className="size-5 text-primary" />
+                  My Trips
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  All flights you&apos;ve saved from search
+                </p>
+              </div>
+              <span className="rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-muted-foreground shadow-sm tabular-nums">
+                {trips.length} total
+              </span>
             </div>
-          )}
+
+            {trips.length === 0 ? (
+              <Card className="overflow-hidden border border-dashed border-border/80 bg-card/60 py-16 text-center shadow-sm">
+                <CardContent>
+                  <div className="mx-auto flex size-16 items-center justify-center rounded-2xl bg-primary/10">
+                    <Sparkles className="size-8 text-primary" />
+                  </div>
+                  <h3 className="mt-5 text-lg font-semibold">No trips yet</h3>
+                  <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
+                    Use the search panel above to find flights and save your first
+                    trip.
+                  </p>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+                {trips.map((trip) => (
+                  <SavedTripCard
+                    key={trip.id}
+                    trip={trip}
+                    onDelete={handleDeleteTrip}
+                    deleting={deletingTripId === trip.id}
+                  />
+                ))}
+              </div>
+            )}
+          </div>
         </section>
       </div>
     </DashboardShell>
-  )
-}
-
-interface DatePickerFieldProps {
-  id: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-  min?: string
-}
-
-function DatePickerField({ id, label, value, onChange, min }: DatePickerFieldProps) {
-  const inputRef = useRef<HTMLInputElement>(null)
-
-  function openPicker() {
-    const input = inputRef.current
-    if (!input) return
-    if (typeof input.showPicker === "function") {
-      input.showPicker()
-    } else {
-      input.focus()
-    }
-  }
-
-  return (
-    <div className="space-y-1.5">
-      <Label htmlFor={id} className="text-xs text-muted-foreground">
-        {label}
-      </Label>
-      <div className="relative">
-        <button
-          type="button"
-          aria-label={`Choose ${label.toLowerCase()} date`}
-          onClick={openPicker}
-          className="absolute top-1/2 left-3 z-10 -translate-y-1/2 text-muted-foreground transition-colors hover:text-foreground"
-        >
-          <CalendarDays className="size-3.5" />
-        </button>
-        <input
-          ref={inputRef}
-          id={id}
-          type="date"
-          value={value}
-          min={min}
-          onChange={(e) => onChange(e.target.value)}
-          onClick={openPicker}
-          className={cn(
-            "flex h-9 w-full cursor-pointer rounded-lg border border-input bg-background py-2 pr-3 pl-9 text-sm shadow-sm transition-colors",
-            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-            "[&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
-          )}
-        />
-      </div>
-    </div>
   )
 }
 

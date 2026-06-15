@@ -4,13 +4,16 @@ import { useState } from "react"
 import {
   Calendar,
   ChevronDown,
+  Loader2,
   MapPin,
   Plane,
+  Trash2,
   Users,
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 
 export type SavedTrip = {
@@ -27,6 +30,8 @@ export type SavedTrip = {
 
 interface SavedTripCardProps {
   trip: SavedTrip
+  onDelete?: (id: string | number) => void
+  deleting?: boolean
 }
 
 function formatLabel(value: string) {
@@ -36,23 +41,28 @@ function formatLabel(value: string) {
     .join(" ")
 }
 
-function SavedTripCard({ trip }: SavedTripCardProps) {
+function SavedTripCard({ trip, onDelete, deleting = false }: SavedTripCardProps) {
   const [open, setOpen] = useState(false)
   const imageSrc = trip.imageUrl || "/hero-travel.png"
+
+  const handleDelete = (event: React.MouseEvent) => {
+    event.stopPropagation()
+    onDelete?.(trip.id)
+  }
 
   return (
     <Card
       className={cn(
-        "cursor-pointer overflow-hidden transition-all hover:shadow-md",
-        open && "ring-2 ring-primary/20"
+        "group flex flex-col overflow-hidden rounded-2xl border-border/50 shadow-md transition-all duration-300 hover:-translate-y-0.5 hover:shadow-xl hover:shadow-primary/10",
+        open && "ring-2 ring-primary/25 shadow-lg"
       )}
       onClick={() => setOpen((prev) => !prev)}
     >
-      <div className="relative h-32 overflow-hidden">
+      <div className="relative h-36 overflow-hidden">
         <img
           src={imageSrc}
           alt={`${trip.from} to ${trip.to}`}
-          className="size-full object-cover"
+          className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
         />
         <div
           className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/55 via-black/10 to-transparent"
@@ -63,16 +73,16 @@ function SavedTripCard({ trip }: SavedTripCardProps) {
         </Badge>
       </div>
 
-      <CardContent className="space-y-3 p-4">
+      <CardContent className="flex-1 cursor-pointer space-y-3 bg-card/95 p-4">
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0">
-            <p className="flex items-center gap-1.5 font-semibold capitalize">
+            <p className="flex items-center gap-1.5 font-semibold capitalize tracking-tight">
               <MapPin className="size-3.5 shrink-0 text-primary" />
               <span className="truncate">
                 {formatLabel(trip.from)} → {formatLabel(trip.to)}
               </span>
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">
+            <p className="mt-1.5 text-xs text-muted-foreground">
               Click to {open ? "hide" : "view"} trip details
             </p>
           </div>
@@ -85,7 +95,7 @@ function SavedTripCard({ trip }: SavedTripCardProps) {
         </div>
 
         {open && (
-          <div className="space-y-2 border-t border-border/60 pt-3 text-sm">
+          <div className="space-y-2.5 rounded-xl border border-border/50 bg-muted/25 p-3 text-sm">
             <DetailRow
               label="Trip type"
               value={
@@ -104,6 +114,26 @@ function SavedTripCard({ trip }: SavedTripCardProps) {
               icon={Users}
             />
             <DetailRow label="Class" value={trip.travelClass} icon={Plane} />
+
+            {onDelete && (
+              <div className="flex justify-end border-t border-border/40 pt-2">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 gap-1 px-2 text-xs text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? (
+                    <Loader2 className="size-3 animate-spin" />
+                  ) : (
+                    <Trash2 className="size-3" />
+                  )}
+                  {deleting ? "Deleting…" : "Delete"}
+                </Button>
+              </div>
+            )}
           </div>
         )}
       </CardContent>

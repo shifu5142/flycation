@@ -155,7 +155,7 @@ function DashboardShell({ children }: { children: React.ReactNode }) {
           <MobileSidebar />
           <span className="font-semibold">Flycation</span>
         </div>
-        <main className="flex-1 overflow-auto bg-muted/20 p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 overflow-auto bg-background p-4 sm:p-6 lg:p-8">
           {children}
         </main>
       </div>
