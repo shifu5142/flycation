@@ -7,6 +7,7 @@ import {
   useMemo,
   useState,
 } from "react"
+import type { AuthChangeEvent, Session } from "@supabase/supabase-js"
 import type { User } from "@supabase/supabase-js"
 
 import { createClient } from "@/lib/supabase/client"
@@ -60,15 +61,17 @@ function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     }
 
-    supabase.auth.getUser().then(({ data }) => {
+    supabase.auth.getUser().then(({ data }: { data: { user: User | null } }) => {
       syncUser(data.user)
     })
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      syncUser(session?.user ?? null)
-    })
+    } = supabase.auth.onAuthStateChange(
+      (_event: AuthChangeEvent, session: Session | null) => {
+        syncUser(session?.user ?? null)
+      }
+    )
 
     return () => subscription.unsubscribe()
   }, [])

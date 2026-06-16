@@ -69,7 +69,25 @@ function DashboardPage() {
   const [trips, setTrips] = useState<SavedTrip[]>([])
   const [deletingTripId, setDeletingTripId] = useState<string | number | null>(null)
   const [countriesImageUrl, setCountriesImageUrl] = useState<string>("");
-  const countriesApiUrl = `https://api.unsplash.com/search/photos?query=${to.toLowerCase()}&per_page=1`
+
+  useEffect(() => {
+    const fetchDestinationImage = async () => {
+      if (!to.trim()) return
+
+      try {
+        const params = new URLSearchParams({ country: to.trim() })
+        const res = await fetch(`/api/country-image?${params.toString()}`)
+        if (!res.ok) return
+
+        const data = (await res.json()) as { url?: string }
+        if (data.url) setCountriesImageUrl(data.url)
+      } catch (err) {
+        console.error("Image fetch failed:", err)
+      }
+    }
+
+    fetchDestinationImage()
+  }, [to])
 
   useEffect(() => {
     const fetchTrips = async () => {
@@ -143,18 +161,16 @@ function DashboardPage() {
       }
   
       // 🔥 IMAGE FETCH (safe local variable)
-      let imageUrl = null;
-  
+      let imageUrl: string | null = countriesImageUrl || null;
+
       try {
-        const res = await fetch(countriesApiUrl, {
-          headers: {
-            Authorization: `Client-ID ${process.env.NEXT_PUBLIC_UNSPLASH_ACCESS_KEY}`,
-          },
-        });
-  
-        if (res.ok) {
-          const countries = await res.json();
-          imageUrl = countries.results?.[0]?.urls?.small || null;
+        if (!imageUrl) {
+          const params = new URLSearchParams({ country: to.trim() })
+          const res = await fetch(`/api/country-image?${params.toString()}`)
+          if (res.ok) {
+            const data = (await res.json()) as { url?: string }
+            imageUrl = data.url ?? null
+          }
         }
       } catch (err) {
         console.error("Image fetch failed:", err);

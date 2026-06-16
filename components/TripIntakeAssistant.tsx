@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react"
 import {
   Bot,
   CalendarDays,
@@ -52,8 +52,10 @@ import { cn } from "@/lib/utils"
 type TravelersStep = "type" | "count"
 
 type TripIntakeAssistantProps = {
+  tripAnswers: TripIntakeData
+  setTripAnswers: Dispatch<SetStateAction<TripIntakeData>>
   generating: boolean
-  onGenerate: (data: TripIntakeData) => void
+  onGenerate: () => void
   onReset?: () => void
 }
 
@@ -248,11 +250,12 @@ function ChatBubble({ message }: { message: ChatMessage }) {
 }
 
 export function TripIntakeAssistant({
+  tripAnswers,
+  setTripAnswers,
   generating,
   onGenerate,
   onReset,
 }: TripIntakeAssistantProps) {
-  const [intake, setIntake] = useState<TripIntakeData>(INITIAL_TRIP_INTAKE)
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: createMessageId(),
@@ -266,10 +269,14 @@ export function TripIntakeAssistant({
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const askTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-  const intakeRef = useRef<TripIntakeData>(INITIAL_TRIP_INTAKE)
+  const intakeRef = useRef<TripIntakeData>(tripAnswers)
 
-  const currentField = getNextField(intake)
-  const complete = isIntakeComplete(intake)
+  const currentField = getNextField(tripAnswers)
+  const complete = isIntakeComplete(tripAnswers)
+
+  useEffect(() => {
+    intakeRef.current = tripAnswers
+  }, [tripAnswers])
 
   const appendMessages = (...msgs: ChatMessage[]) => {
     setMessages((prev) => [...prev, ...msgs])
@@ -318,7 +325,7 @@ export function TripIntakeAssistant({
   ) => {
     const nextData = updater(intakeRef.current)
     intakeRef.current = nextData
-    setIntake(nextData)
+    setTripAnswers(nextData)
     appendMessages({
       id: createMessageId(),
       role: "user",
@@ -434,7 +441,7 @@ export function TripIntakeAssistant({
       askTimeoutRef.current = null
     }
     intakeRef.current = INITIAL_TRIP_INTAKE
-    setIntake(INITIAL_TRIP_INTAKE)
+    setTripAnswers(INITIAL_TRIP_INTAKE)
     setMessages([
       {
         id: createMessageId(),
@@ -655,9 +662,9 @@ export function TripIntakeAssistant({
       </Card>
 
       <TripSummaryPanel
-        data={intake}
+        data={tripAnswers}
         generating={generating}
-        onGenerate={() => onGenerate(intake)}
+        onGenerate={onGenerate}
         onReset={handleReset}
       />
     </div>

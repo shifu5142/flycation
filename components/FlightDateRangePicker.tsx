@@ -8,6 +8,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
 } from "react"
 import { createPortal } from "react-dom"
 import { CalendarDays, ChevronLeft, ChevronRight } from "lucide-react"
@@ -85,6 +86,14 @@ function buildMonthDays(month: Date) {
   return cells
 }
 
+function useIsClient() {
+  return useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  )
+}
+
 function FlightDateRangePicker({
   tripType,
   departure,
@@ -97,7 +106,7 @@ function FlightDateRangePicker({
   const triggerRef = useRef<HTMLButtonElement>(null)
   const dropdownRef = useRef<HTMLDivElement>(null)
   const [open, setOpen] = useState(false)
-  const [mounted, setMounted] = useState(false)
+  const mounted = useIsClient()
   const [viewMonth, setViewMonth] = useState(() => startOfDay(new Date()))
   const [hoverDate, setHoverDate] = useState<string | null>(null)
   const [position, setPosition] = useState({ top: 0, left: 0, width: 300 })
@@ -136,10 +145,6 @@ function FlightDateRangePicker({
     })
   }, [tripType])
 
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
   useLayoutEffect(() => {
     if (!open) return
     updatePosition()
@@ -172,12 +177,6 @@ function FlightDateRangePicker({
       window.removeEventListener("scroll", handleReposition, true)
     }
   }, [open, updatePosition])
-
-  useEffect(() => {
-    if (departure) {
-      setViewMonth(startOfDay(parseISO(departure)))
-    }
-  }, [departure])
 
   const handleDaySelect = (iso: string, event: React.MouseEvent) => {
     event.preventDefault()
@@ -406,6 +405,11 @@ function FlightDateRangePicker({
             setOpen(false)
             return
           }
+          setViewMonth(
+            departure
+              ? startOfDay(parseISO(departure))
+              : startOfDay(new Date())
+          )
           updatePosition()
           setOpen(true)
         }}

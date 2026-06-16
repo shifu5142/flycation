@@ -13,7 +13,6 @@ import {
   applyThemeToDocument,
   type ColorTheme,
   DARK_MODE_STORAGE_KEY,
-  isColorTheme,
   readStoredTheme,
   THEME_STORAGE_KEY,
 } from "@/lib/themes"
@@ -34,6 +33,7 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     const stored = readStoredTheme()
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- sync theme from localStorage after hydration
     setColorThemeState(stored.colorTheme)
     setDarkModeState(stored.darkMode)
     applyThemeToDocument(stored.colorTheme, stored.darkMode)
@@ -42,18 +42,13 @@ function ThemeProvider({ children }: { children: React.ReactNode }) {
   const setColorTheme = useCallback((theme: ColorTheme) => {
     setColorThemeState(theme)
     localStorage.setItem(THEME_STORAGE_KEY, theme)
-    applyThemeToDocument(
-      theme,
-      document.documentElement.classList.contains("dark")
-    )
+    applyThemeToDocument(theme, readStoredTheme().darkMode)
   }, [])
 
   const setDarkMode = useCallback((enabled: boolean) => {
     setDarkModeState(enabled)
     localStorage.setItem(DARK_MODE_STORAGE_KEY, String(enabled))
-    const themeAttr = document.documentElement.getAttribute("data-theme")
-    const theme = themeAttr && isColorTheme(themeAttr) ? themeAttr : "default"
-    applyThemeToDocument(theme, enabled)
+    applyThemeToDocument(readStoredTheme().colorTheme, enabled)
   }, [])
 
   const toggleDarkMode = useCallback(() => {
