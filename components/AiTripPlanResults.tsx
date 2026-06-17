@@ -209,11 +209,11 @@ export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
       {/* Overview */}
       <Card className="overflow-hidden rounded-2xl border-border/60 shadow-md">
         <div className="grid md:grid-cols-[1.2fr_1fr]">
-          <div className="relative h-48 md:h-auto md:min-h-[220px]">
+          <div className="relative h-48 w-full shrink-0 overflow-hidden md:h-[220px]">
             <img
               src={heroImageUrl}
               alt={hero.destination}
-              className="size-full object-cover"
+              className="absolute inset-0 size-full max-h-full max-w-full object-cover object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r" />
           </div>

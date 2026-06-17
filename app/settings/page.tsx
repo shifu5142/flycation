@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Camera, Moon, Sun, Trash2 } from "lucide-react"
+import { Camera, Moon, Sun, Trash2, TriangleAlert } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
 import { useTheme } from "@/components/ThemeProvider"
@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
+import { useRouter } from "next/navigation"
 import {
   Card,
   CardContent,
@@ -38,7 +39,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-
 const currencies = ["USD", "EUR", "GBP", "JPY", "AUD"]
 const travelStyles = [
   { value: "budget", label: "Budget", description: "Save money, maximize experiences" },
@@ -47,6 +47,7 @@ const travelStyles = [
 ] as const
 
 function SettingsPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const { colorTheme, darkMode, setColorTheme, toggleDarkMode } = useTheme()
   const [name, setName] = useState("")
@@ -55,6 +56,16 @@ function SettingsPage() {
   const [avatar, setAvatar] = useState<string | null>(null)
   const [currency, setCurrency] = useState("USD")
   const [travelStyle, setTravelStyle] = useState<"budget" | "balanced" | "luxury">("balanced")
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteConfirmText, setDeleteConfirmText] = useState("")
+
+  const canDeleteAccount =
+    deleteConfirmText.trim().toLowerCase() === "confirm delete account"
+
+  const handleDeleteDialogChange = (open: boolean) => {
+    setDeleteDialogOpen(open)
+    if (!open) setDeleteConfirmText("")
+  }
 
   useEffect(() => {
     const loadUser = async () => {
@@ -75,8 +86,50 @@ function SettingsPage() {
     toast("Profile updated!")
   }
 
-  const handleDeleteAccount = () => {
-    toast("Account deletion is disabled in demo mode", "info")
+  const handleDeleteAccount = async () => {
+    if (!canDeleteAccount) return
+  
+    setDeleteDialogOpen(false)
+  
+    if (deleteConfirmText.toLowerCase() !== "confirm delete account") {
+      toast("Please type 'confirm delete account' to continue", "info")
+      return
+    }
+  
+    try {
+      const { data } = await supabase.auth.getUser()
+      const user = data.user
+  
+      if (!user) {
+        toast("No user found")
+        return
+      }
+  
+      const response = await fetch("/settings/api", {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          userId: user.id,
+        }),
+      })
+  
+      const result = await response.json()
+      console.log(result)
+      if (!response.ok) {
+        toast(result.error || "Error deleting account")
+        return
+      }
+  
+      await supabase.auth.signOut()
+  
+      toast("Account deleted!")
+      router.push("/")
+    } catch (error) {
+      toast("Something went wrong")
+      console.error(error)
+    }
   }
 
   return (
@@ -271,23 +324,63 @@ function SettingsPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <Dialog>
+                <Dialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
                   <DialogTrigger asChild>
                     <Button variant="destructive">
                       <Trash2 className="size-4" />
                       Delete account
                     </Button>
                   </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Delete account?</DialogTitle>
+                  <DialogContent className="gap-6 sm:max-w-md">
+                    <DialogHeader className="space-y-2">
+                      <DialogTitle className="flex items-center gap-2 text-destructive">
+                        <TriangleAlert className="size-5 shrink-0" />
+                        Delete account?
+                      </DialogTitle>
                       <DialogDescription>
-                        This action cannot be undone. All your trips and data will be permanently removed.
+                        This will permanently remove your account and all
+                        associated data.
                       </DialogDescription>
                     </DialogHeader>
-                    <DialogFooter>
-                      <Button variant="outline">Cancel</Button>
-                      <Button variant="destructive" onClick={handleDeleteAccount}>
+
+                    <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        Warning: This action is permanent and cannot be undone.
+                        All your trips and data will be permanently removed. To
+                        continue, type &quot;CONFIRM DELETE ACCOUNT&quot;.
+                      </p>
+                    </div>
+
+                    <div className="space-y-3">
+                      <Label
+                        htmlFor="delete-confirm"
+                        className="text-sm font-medium"
+                      >
+                        Confirmation
+                      </Label>
+                      <Input
+                        id="delete-confirm"
+                        value={deleteConfirmText}
+                        onChange={(e) => setDeleteConfirmText(e.target.value)}
+                        placeholder="confirm delete account"
+                        autoComplete="off"
+                        className="h-11"
+                      />
+                    </div>
+
+                    <DialogFooter className="gap-2 sm:gap-3">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => handleDeleteDialogChange(false)}
+                      >
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        disabled={!canDeleteAccount}
+                        onClick={handleDeleteAccount}
+                      >
                         Delete account
                       </Button>
                     </DialogFooter>
