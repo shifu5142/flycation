@@ -7,6 +7,7 @@ import { Globe } from "lucide-react"
 
 import { localeConfig } from "@/i18n/locales"
 import { LOCALE_COOKIE, type AppLocale } from "@/i18n/routing"
+import { LocaleFlag } from "@/components/LocaleFlag"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -38,27 +39,28 @@ function LanguageSwitcher({ className }: { className?: string }) {
         <Button
           variant="ghost"
           size="icon"
-          className={cn("rounded-lg", className)}
+          className={cn("cursor-pointer rounded-lg", className)}
           aria-label={t("language")}
           disabled={isPending}
         >
           <Globe className="size-4" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="min-w-44">
-        {localeConfig.map(({ code, labelKey, flag }) => (
+      <DropdownMenuContent align="end" className="min-w-32">
+        {localeConfig.map(({ code, labelKey, countryCode }) => (
           <DropdownMenuItem
             key={code}
             onClick={() => switchLocale(code)}
+            aria-label={t(labelKey)}
             className={cn(
-              "gap-2",
+              "flex w-full cursor-pointer items-center justify-between gap-3",
               locale === code ? "bg-accent font-medium" : undefined
             )}
           >
-            <span className="text-base leading-none" aria-hidden>
-              {flag}
+            <span className="text-sm font-semibold tracking-wide">
+              {code.toUpperCase()}
             </span>
-            {t(labelKey)}
+            <LocaleFlag countryCode={countryCode} />
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

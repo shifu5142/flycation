@@ -12,14 +12,14 @@ export type LocaleLabelKey =
 export const localeConfig: {
   code: AppLocale
   labelKey: LocaleLabelKey
-  flag: string
+  countryCode: string
 }[] = [
-  { code: "en", labelKey: "english", flag: "🇬🇧" },
-  { code: "he", labelKey: "hebrew", flag: "🇮🇱" },
-  { code: "ru", labelKey: "russian", flag: "🇷🇺" },
-  { code: "zh", labelKey: "chinese", flag: "🇨🇳" },
-  { code: "es", labelKey: "spanish", flag: "🇪🇸" },
-  { code: "fr", labelKey: "french", flag: "🇫🇷" },
+  { code: "en", labelKey: "english", countryCode: "gb" },
+  { code: "he", labelKey: "hebrew", countryCode: "il" },
+  { code: "ru", labelKey: "russian", countryCode: "ru" },
+  { code: "zh", labelKey: "chinese", countryCode: "cn" },
+  { code: "es", labelKey: "spanish", countryCode: "es" },
+  { code: "fr", labelKey: "french", countryCode: "fr" },
 ]
 
 export function isAppLocale(value: string): value is AppLocale {
