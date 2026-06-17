@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
 import {
   ArrowLeftRight,
   ChevronDown,
@@ -57,6 +58,7 @@ function toSavedTrip(row: Record<string, unknown>): SavedTrip {
 }
 
 function DashboardPage() {
+  const t = useTranslations("dashboard")
   const { toast } = useToast()
   const { firstName, loading: authLoading, user } = useAuth()
   const [searching, setSearching] = useState(false)
@@ -227,19 +229,18 @@ function DashboardPage() {
               <div className="space-y-2">
                 <p className="inline-flex items-center gap-2 rounded-full border border-white/25 bg-white/10 px-3 py-1 text-xs font-medium tracking-wide text-white/95 uppercase backdrop-blur-md">
                   <Plane className="size-3.5" />
-                  Your travel hub
+                  {t("travelHub")}
                 </p>
                 <div>
                   <h1 className="text-3xl font-bold tracking-tight text-white drop-shadow-[0_2px_12px_rgba(0,0,0,0.35)] sm:text-4xl">
-                    Welcome back,{" "}
-                    <span className="text-sky-100">
-                      {authLoading ? "…" : firstName}
-                    </span>
+                    {t("welcomeBack", { name: authLoading ? "…" : firstName })}
                   </h1>
                   <p className="mt-2 max-w-md text-sm leading-relaxed text-white/85 drop-shadow-sm">
                     {trips.length > 0
-                      ? `You have ${trips.length} saved trip${trips.length === 1 ? "" : "s"}. Where will you fly next?`
-                      : "Search below to plan your next adventure."}
+                      ? t(trips.length === 1 ? "savedTripsOne" : "savedTripsMany", {
+                          count: trips.length,
+                        })
+                      : t("searchBelow")}
                   </p>
                 </div>
               </div>
@@ -247,7 +248,7 @@ function DashboardPage() {
                 <p className="text-2xl font-bold tabular-nums text-white">
                   {trips.length}
                 </p>
-                <p className="text-xs font-medium text-white/75">Saved trips</p>
+                <p className="text-xs font-medium text-white/75">{t("savedTrips")}</p>
               </div>
             </div>
 
@@ -260,7 +261,7 @@ function DashboardPage() {
                 <span className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary shadow-sm ring-1 ring-primary/10">
                   <Search className="size-4" />
                 </span>
-                Search flights
+                {t("searchFlights")}
               </h2>
               <Tabs
                 value={tripType}
@@ -275,13 +276,13 @@ function DashboardPage() {
                     value="oneway"
                     className="rounded-lg px-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
                   >
-                    Direct
+                    {t("direct")}
                   </TabsTrigger>
                   <TabsTrigger
                     value="roundtrip"
                     className="rounded-lg px-3 text-sm data-[state=active]:bg-background data-[state=active]:shadow-sm"
                   >
-                    Round trip
+                    {t("roundTrip")}
                   </TabsTrigger>
                 </TabsList>
               </Tabs>

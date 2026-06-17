@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react"
+import { useLocale, useTranslations } from "next-intl"
 import {
   Bot,
   CalendarDays,
@@ -31,22 +32,20 @@ import {
   BUDGET_OPTIONS,
   createMessageId,
   DURATION_OPTIONS,
-  formatInterests,
-  formatTravelers,
-  getCompletionMessage,
   getNextField,
-  getQuestionForField,
-  getWelcomeMessage,
   INITIAL_TRIP_INTAKE,
   INTERESTS,
   isIntakeComplete,
   TRAVEL_STYLES,
   type ChatMessage,
+  type IntakeField,
   type TripIntakeData,
   type TripInterest,
   type TravelerType,
   type UserTravelStyle,
 } from "@/lib/aiTripIntake"
+import { isNonEnglishLocale } from "@/i18n/locales"
+import { textNeedsEnglishTranslation } from "@/lib/tripAnswersEnglish"
 import { cn } from "@/lib/utils"
 
 type TravelersStep = "type" | "count"
@@ -55,6 +54,7 @@ type TripIntakeAssistantProps = {
   tripAnswers: TripIntakeData
   setTripAnswers: Dispatch<SetStateAction<TripIntakeData>>
   generating: boolean
+  generateError?: boolean
   onGenerate: () => void
   onReset?: () => void
 }
@@ -64,11 +64,13 @@ function SummaryRow({
   value,
   icon: Icon,
   done,
+  notSetYet,
 }: {
   label: string
   value: string | null
   icon: typeof MapPin
   done: boolean
+  notSetYet: string
 }) {
   return (
     <div className="flex items-start gap-3 rounded-lg border border-border/60 bg-muted/20 px-3 py-2.5">
@@ -88,7 +90,7 @@ function SummaryRow({
             value ? "text-foreground" : "text-muted-foreground/70"
           )}
         >
-          {value ?? "Not set yet"}
+          {value ?? notSetYet}
         </p>
       </div>
     </div>
@@ -98,14 +100,17 @@ function SummaryRow({
 function TripSummaryPanel({
   data,
   generating,
+  generateError,
   onGenerate,
   onReset,
 }: {
   data: TripIntakeData
   generating: boolean
+  generateError?: boolean
   onGenerate: () => void
   onReset: () => void
 }) {
+  const t = useTranslations("aiTripPlanner")
   const [showSlowHint, setShowSlowHint] = useState(false)
   const complete = isIntakeComplete(data)
   const progress =
@@ -117,6 +122,34 @@ function TripSummaryPanel({
       data.travelers,
       data.interests.length > 0 ? "done" : null,
     ].filter(Boolean).length
+
+  const displayDuration =
+    data.duration &&
+    (DURATION_OPTIONS as readonly string[]).includes(data.duration)
+      ? t(`durationOptions.${data.duration}` as "durationOptions.3 days")
+      : data.duration
+
+  const displayBudget =
+    data.budget && (BUDGET_OPTIONS as readonly string[]).includes(data.budget)
+      ? t(`budgetOptions.${data.budget}` as "budgetOptions.$1,000")
+      : data.budget
+
+  const displayTravelStyle = data.travelStyle
+    ? t(`travelStyles.${data.travelStyle}`)
+    : null
+
+  const displayTravelers = data.travelers
+    ? data.travelers.type === "solo"
+      ? t("formatTravelers.solo")
+      : data.travelers.type === "couple"
+        ? t("formatTravelers.couple")
+        : t("formatTravelers.group", { count: data.travelers.count })
+    : null
+
+  const displayInterests =
+    data.interests.length > 0
+      ? data.interests.map((interest) => t(`interestOptions.${interest}`)).join(", ")
+      : null
 
   useEffect(() => {
     if (!generating) {
@@ -137,12 +170,12 @@ function TripSummaryPanel({
     <Card className="sticky top-4 rounded-2xl border-primary/15 shadow-lg shadow-primary/5">
       <CardHeader className="pb-3">
         <div className="flex items-center justify-between gap-2">
-          <CardTitle className="text-base">Trip summary</CardTitle>
+          <CardTitle className="text-base">{t("summaryTitle")}</CardTitle>
           <Badge variant="secondary" className="rounded-full text-xs">
             {progress}/6
           </Badge>
         </div>
-        <CardDescription>Updates as you answer each question</CardDescription>
+        <CardDescription>{t("summaryDescription")}</CardDescription>
         <div className="mt-3 h-1.5 overflow-hidden rounded-full bg-muted">
           <div
             className="h-full rounded-full bg-primary transition-all duration-500"
@@ -152,40 +185,46 @@ function TripSummaryPanel({
       </CardHeader>
       <CardContent className="space-y-2 pb-4">
         <SummaryRow
-          label="Destination"
+          label={t("destination")}
           value={data.destination}
           icon={MapPin}
           done={!!data.destination}
+          notSetYet={t("notSetYet")}
         />
         <SummaryRow
-          label="Duration"
-          value={data.duration}
+          label={t("duration")}
+          value={displayDuration}
           icon={CalendarDays}
           done={!!data.duration}
+          notSetYet={t("notSetYet")}
         />
         <SummaryRow
-          label="Budget"
-          value={data.budget}
+          label={t("budget")}
+          value={displayBudget}
           icon={Wallet}
           done={!!data.budget}
+          notSetYet={t("notSetYet")}
         />
         <SummaryRow
-          label="Travel style"
-          value={data.travelStyle}
+          label={t("travelStyle")}
+          value={displayTravelStyle}
           icon={Sparkles}
           done={!!data.travelStyle}
+          notSetYet={t("notSetYet")}
         />
         <SummaryRow
-          label="Travelers"
-          value={formatTravelers(data)}
+          label={t("travelers")}
+          value={displayTravelers}
           icon={Users}
           done={!!data.travelers}
+          notSetYet={t("notSetYet")}
         />
         <SummaryRow
-          label="Interests"
-          value={formatInterests(data.interests)}
+          label={t("interests")}
+          value={displayInterests}
           icon={Heart}
           done={data.interests.length > 0}
+          notSetYet={t("notSetYet")}
         />
 
         <Separator className="my-4" />
@@ -199,18 +238,26 @@ function TripSummaryPanel({
           {generating ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {showSlowHint ? "Will take few seconds" : "Generating trip…"}
+              {showSlowHint ? t("generatingSlow") : t("generating")}
             </>
           ) : (
             <>
               <Wand2 className="size-4" />
-              Generate trip
+              {t("generateTrip")}
             </>
           )}
         </Button>
+        {generateError && (
+          <div
+            role="alert"
+            className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-center text-sm font-medium text-destructive"
+          >
+            {t("tripGenerationFailed")}
+          </div>
+        )}
         {!complete && (
           <p className="text-center text-xs text-muted-foreground">
-            Complete all questions to enable generation
+            {t("completeToEnable")}
           </p>
         )}
         <Button
@@ -220,7 +267,7 @@ function TripSummaryPanel({
           onClick={onReset}
           disabled={generating}
         >
-          Start over
+          {t("startOver")}
         </Button>
       </CardContent>
     </Card>
@@ -269,17 +316,35 @@ export function TripIntakeAssistant({
   tripAnswers,
   setTripAnswers,
   generating,
+  generateError,
   onGenerate,
   onReset,
 }: TripIntakeAssistantProps) {
+  const t = useTranslations("aiTripPlanner")
+  const locale = useLocale()
+
+  const getQuestion = (
+    field: IntakeField,
+    travelersStep: TravelersStep = "type"
+  ) => {
+    if (field === "travelers" && travelersStep === "count") {
+      return t("questions.travelersCount")
+    }
+    return t(`questions.${field}`)
+  }
+
+  const getCompletion = (data: TripIntakeData) =>
+    t("completion", { destination: data.destination ?? "" })
+
   const [messages, setMessages] = useState<ChatMessage[]>(() => [
     {
       id: createMessageId(),
       role: "assistant",
-      content: getWelcomeMessage(),
+      content: t("welcome"),
     },
   ])
   const [textInput, setTextInput] = useState("")
+  const [translating, setTranslating] = useState(false)
   const [travelersStep, setTravelersStep] = useState<TravelersStep>("type")
   const [selectedInterests, setSelectedInterests] = useState<TripInterest[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
@@ -298,6 +363,25 @@ export function TripIntakeAssistant({
     setMessages((prev) => [...prev, ...msgs])
   }
 
+  const translateToEnglish = async (text: string): Promise<string> => {
+    if (!isNonEnglishLocale(locale) && !textNeedsEnglishTranslation(text)) {
+      return text
+    }
+
+    try {
+      const res = await fetch("/api/translate-trip-answers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ text, locale }),
+      })
+      if (!res.ok) return text
+      const data = (await res.json()) as { text?: string }
+      return data.text?.trim() || text
+    } catch {
+      return text
+    }
+  }
+
   const askNext = (data: TripIntakeData, step: TravelersStep = "type") => {
     if (!data) return
     const next = getNextField(data)
@@ -305,18 +389,14 @@ export function TripIntakeAssistant({
       appendMessages({
         id: createMessageId(),
         role: "assistant",
-        content: getCompletionMessage(data),
+        content: getCompletion(data),
       })
       return
     }
-    const question =
-      next === "travelers"
-        ? getQuestionForField("travelers", step)
-        : getQuestionForField(next)
     appendMessages({
       id: createMessageId(),
       role: "assistant",
-      content: question,
+      content: getQuestion(next, next === "travelers" ? step : "type"),
     })
   }
 
@@ -361,6 +441,15 @@ export function TripIntakeAssistant({
   }, [])
 
   useEffect(() => {
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === "assistant") {
+        return [{ ...prev[0], content: t("welcome") }]
+      }
+      return prev
+    })
+  }, [locale, t])
+
+  useEffect(() => {
     scrollRef.current?.scrollTo({
       top: scrollRef.current.scrollHeight,
       behavior: "smooth",
@@ -376,21 +465,39 @@ export function TripIntakeAssistant({
     }
   }, [currentField, travelersStep])
 
-  const handleTextSubmit = () => {
+  const handleTextSubmit = async () => {
     const value = textInput.trim()
-    if (!value || generating || complete) return
+    if (!value || generating || complete || translating) return
 
     if (currentField === "destination") {
-      acknowledgeAndAdvance(value, (prev) => ({ ...prev, destination: value }))
+      setTranslating(true)
+      const englishValue = await translateToEnglish(value)
+      setTranslating(false)
+      acknowledgeAndAdvance(value, (prev) => ({
+        ...prev,
+        destination: englishValue,
+      }))
     } else if (currentField === "duration") {
-      acknowledgeAndAdvance(value, (prev) => ({ ...prev, duration: value }))
+      setTranslating(true)
+      const englishValue = await translateToEnglish(value)
+      setTranslating(false)
+      acknowledgeAndAdvance(value, (prev) => ({
+        ...prev,
+        duration: englishValue,
+      }))
     } else if (currentField === "budget") {
-      acknowledgeAndAdvance(value, (prev) => ({ ...prev, budget: value }))
+      setTranslating(true)
+      const englishValue = await translateToEnglish(value)
+      setTranslating(false)
+      acknowledgeAndAdvance(value, (prev) => ({
+        ...prev,
+        budget: englishValue,
+      }))
     } else if (currentField === "travelers" && travelersStep === "count") {
       const count = Number(value)
       if (!count || count < 3) return
       acknowledgeAndAdvance(
-        `${count} people`,
+        t("travelerTypes.groupPeople", { count }),
         (prev) => ({
           ...prev,
           travelers: { type: "group", count },
@@ -403,7 +510,10 @@ export function TripIntakeAssistant({
 
   const selectTravelStyle = (style: UserTravelStyle) => {
     if (generating || currentField !== "travelStyle") return
-    acknowledgeAndAdvance(style, (prev) => ({ ...prev, travelStyle: style }))
+    acknowledgeAndAdvance(t(`travelStyles.${style}`), (prev) => ({
+      ...prev,
+      travelStyle: style,
+    }))
   }
 
   const selectTravelerType = (type: TravelerType) => {
@@ -413,19 +523,22 @@ export function TripIntakeAssistant({
       appendMessages({
         id: createMessageId(),
         role: "user",
-        content: "Group",
+        content: t("travelerTypes.group"),
       })
       setTravelersStep("count")
       appendMessages({
         id: createMessageId(),
         role: "assistant",
-        content: getQuestionForField("travelers", "count"),
+        content: getQuestion("travelers", "count"),
       })
       return
     }
 
     const count = type === "solo" ? 1 : 2
-    const label = type === "solo" ? "Solo (1)" : "Couple (2)"
+    const label =
+      type === "solo"
+        ? t("travelerTypes.soloLabel")
+        : t("travelerTypes.coupleLabel")
     acknowledgeAndAdvance(label, (prev) => ({
       ...prev,
       travelers: { type, count },
@@ -444,7 +557,9 @@ export function TripIntakeAssistant({
   const confirmInterests = () => {
     if (generating || currentField !== "interests" || selectedInterests.length === 0)
       return
-    const label = selectedInterests.join(", ")
+    const label = selectedInterests
+      .map((interest) => t(`interestOptions.${interest}`))
+      .join(", ")
     acknowledgeAndAdvance(label, (prev) => ({
       ...prev,
       interests: [...selectedInterests],
@@ -462,7 +577,7 @@ export function TripIntakeAssistant({
       {
         id: createMessageId(),
         role: "assistant",
-        content: getWelcomeMessage(),
+        content: t("welcome"),
       },
     ])
     setTextInput("")
@@ -480,12 +595,12 @@ export function TripIntakeAssistant({
       (currentField === "travelers" && travelersStep === "count"))
 
   const textPlaceholder = (() => {
-    if (currentField === "destination") return "e.g. Tokyo, Japan"
-    if (currentField === "duration") return "e.g. 5 days in April"
-    if (currentField === "budget") return "e.g. $2,500 total"
+    if (currentField === "destination") return t("placeholders.destination")
+    if (currentField === "duration") return t("placeholders.duration")
+    if (currentField === "budget") return t("placeholders.budget")
     if (currentField === "travelers" && travelersStep === "count")
-      return "e.g. 6"
-    return "Type your answer…"
+      return t("placeholders.travelersCount")
+    return t("placeholders.default")
   })()
 
   return (
@@ -497,9 +612,9 @@ export function TripIntakeAssistant({
               <Bot className="size-5" />
             </div>
             <div>
-              <CardTitle className="text-base">Trip planning assistant</CardTitle>
+              <CardTitle className="text-base">{t("assistantTitle")}</CardTitle>
               <CardDescription className="text-xs">
-                Answer a few questions — I&apos;ll build your itinerary after
+                {t("assistantSubtitle")}
               </CardDescription>
             </div>
           </div>
@@ -522,7 +637,7 @@ export function TripIntakeAssistant({
                 <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border border-border/60 bg-card px-4 py-3">
                   <Loader2 className="size-4 animate-spin text-primary" />
                   <span className="text-sm text-muted-foreground">
-                    Building your itinerary…
+                    {t("buildingItinerary")}
                   </span>
                 </div>
               </div>
@@ -534,7 +649,7 @@ export function TripIntakeAssistant({
               {currentField === "travelStyle" && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Choose one
+                    {t("chooseOne")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {TRAVEL_STYLES.map((style) => (
@@ -546,7 +661,7 @@ export function TripIntakeAssistant({
                         className="rounded-full"
                         onClick={() => selectTravelStyle(style)}
                       >
-                        {style}
+                        {t(`travelStyles.${style}`)}
                       </Button>
                     ))}
                   </div>
@@ -556,16 +671,16 @@ export function TripIntakeAssistant({
               {currentField === "travelers" && travelersStep === "type" && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Select traveler type
+                    {t("selectTravelerType")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {(
                       [
-                        { type: "solo" as const, label: "Solo" },
-                        { type: "couple" as const, label: "Couple" },
-                        { type: "group" as const, label: "Group" },
+                        { type: "solo" as const, labelKey: "solo" as const },
+                        { type: "couple" as const, labelKey: "couple" as const },
+                        { type: "group" as const, labelKey: "group" as const },
                       ] as const
-                    ).map(({ type, label }) => (
+                    ).map(({ type, labelKey }) => (
                       <Button
                         key={type}
                         type="button"
@@ -574,7 +689,7 @@ export function TripIntakeAssistant({
                         className="rounded-full"
                         onClick={() => selectTravelerType(type)}
                       >
-                        {label}
+                        {t(`travelerTypes.${labelKey}`)}
                       </Button>
                     ))}
                   </div>
@@ -584,7 +699,7 @@ export function TripIntakeAssistant({
               {currentField === "interests" && (
                 <div className="space-y-3">
                   <p className="text-xs font-medium text-muted-foreground">
-                    Select all that apply
+                    {t("selectAllApply")}
                   </p>
                   <div className="flex flex-wrap gap-2">
                     {INTERESTS.map((interest) => (
@@ -600,7 +715,7 @@ export function TripIntakeAssistant({
                         className="rounded-full"
                         onClick={() => toggleInterest(interest)}
                       >
-                        {interest}
+                        {t(`interestOptions.${interest}`)}
                       </Button>
                     ))}
                   </div>
@@ -609,7 +724,7 @@ export function TripIntakeAssistant({
                     disabled={selectedInterests.length === 0}
                     onClick={confirmInterests}
                   >
-                    Continue with {selectedInterests.length || 0} selected
+                    {t("continueWith", { count: selectedInterests.length || 0 })}
                   </Button>
                 </div>
               )}
@@ -628,19 +743,27 @@ export function TripIntakeAssistant({
                       className="h-8 rounded-full text-xs"
                       onClick={() => {
                         if (currentField === "duration") {
-                          acknowledgeAndAdvance(option, (prev) => ({
-                            ...prev,
-                            duration: option,
-                          }))
+                          acknowledgeAndAdvance(
+                            t(`durationOptions.${option}` as "durationOptions.3 days"),
+                            (prev) => ({
+                              ...prev,
+                              duration: option,
+                            })
+                          )
                         } else {
-                          acknowledgeAndAdvance(option, (prev) => ({
-                            ...prev,
-                            budget: option,
-                          }))
+                          acknowledgeAndAdvance(
+                            t(`budgetOptions.${option}` as "budgetOptions.$1,000"),
+                            (prev) => ({
+                              ...prev,
+                              budget: option,
+                            })
+                          )
                         }
                       }}
                     >
-                      {option}
+                      {currentField === "duration"
+                        ? t(`durationOptions.${option}` as "durationOptions.3 days")
+                        : t(`budgetOptions.${option}` as "budgetOptions.$1,000")}
                     </Button>
                   ))}
                 </div>
@@ -660,15 +783,19 @@ export function TripIntakeAssistant({
                     onChange={(e) => setTextInput(e.target.value)}
                     placeholder={textPlaceholder}
                     className="h-11 rounded-xl bg-background"
-                    disabled={generating}
+                    disabled={generating || translating}
                   />
                   <Button
                     type="submit"
                     size="icon"
                     className="size-11 shrink-0 rounded-xl"
-                    disabled={!textInput.trim()}
+                    disabled={!textInput.trim() || translating}
                   >
-                    <Send className="size-4" />
+                    {translating ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <Send className="size-4" />
+                    )}
                   </Button>
                 </form>
               )}
@@ -680,6 +807,7 @@ export function TripIntakeAssistant({
       <TripSummaryPanel
         data={tripAnswers}
         generating={generating}
+        generateError={generateError}
         onGenerate={onGenerate}
         onReset={handleReset}
       />

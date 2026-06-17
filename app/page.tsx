@@ -2,8 +2,7 @@
 
 import { useState } from "react"
 import Image from "next/image"
-import Link from "next/link"
-import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   ArrowRight,
   Map,
@@ -12,12 +11,14 @@ import {
   Wallet,
   Wand2,
 } from "lucide-react"
+
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
 import { FlightDateRangePicker } from "@/components/FlightDateRangePicker"
 import { ExampleTripCard } from "@/components/ExampleTripCard"
 import { useToast } from "@/components/ToastProvider"
+import { Link, useRouter } from "@/i18n/navigation"
 import { mockTrips } from "@/lib/mockTrips"
 import { Button } from "@/components/ui/button"
 import {
@@ -30,37 +31,24 @@ import {
 
 const HERO_IMAGE = "/hero-travel.png"
 
-const features = [
-  {
-    icon: Wand2,
-    title: "AI trip planning",
-    description:
-      "Describe your dream trip and let AI build a complete itinerary in seconds.",
-  },
-  {
-    icon: Plane,
-    title: "Cheap flights",
-    description:
-      "Compare flight options across airlines and find the best deals for your budget.",
-  },
-  {
-    icon: Map,
-    title: "Smart itineraries",
-    description:
-      "Day-by-day plans with activities, restaurants, and local highlights.",
-  },
+const featureConfig = [
+  { key: "ai" as const, icon: Wand2 },
+  { key: "flights" as const, icon: Plane },
+  { key: "itineraries" as const, icon: Map },
 ]
 
 function LandingPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const t = useTranslations("home")
+  const tCommon = useTranslations("common")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
   const [departure, setDeparture] = useState("")
 
   const handleGenerate = () => {
     if (!from || !to) {
-      toast("Please fill in the From and To fields", "info")
+      toast(t("fillFromTo"), "info")
       return
     }
     const params = new URLSearchParams({
@@ -75,12 +63,11 @@ function LandingPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
-      {/* Hero — background matches full.png mockup */}
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 min-h-full">
           <Image
             src={HERO_IMAGE}
-            alt="Aerial view of tropical coastline from airplane"
+            alt={t("heroImageAlt")}
             fill
             priority
             className="object-cover object-center"
@@ -93,20 +80,23 @@ function LandingPage() {
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/25 px-4 py-1.5 text-sm text-white shadow-sm backdrop-blur-sm [text-shadow:0_1px_3px_rgba(0,0,0,0.35)]">
               <Sparkles className="size-3.5" />
-              AI travel planner
+              {t("badge")}
             </div>
 
             <h1 className="text-balance text-4xl font-bold tracking-tight text-white [text-shadow:0_2px_12px_rgba(0,0,0,0.4)] sm:text-5xl lg:text-6xl">
-              Plan your <span className="text-primary">Flycation</span> in seconds
+              {t.rich("title", {
+                highlight: (chunks) => (
+                  <span className="text-primary">{chunks}</span>
+                ),
+              })}
             </h1>
             <p className="mx-auto mt-6 max-w-xl text-pretty text-base leading-relaxed text-white [text-shadow:0_1px_6px_rgba(0,0,0,0.35)] sm:text-lg">
-              Tell us where you want to go. We&apos;ll handle flights, hotels, and
-              day-by-day itineraries — all powered by AI.
+              {t("subtitle")}
             </p>
             <div className="mt-8 flex flex-wrap justify-center gap-3">
               <Button size="lg" asChild className="rounded-lg px-6">
                 <Link href="/register">
-                  Start planning
+                  {t("startPlanning")}
                   <ArrowRight className="size-4" />
                 </Link>
               </Button>
@@ -116,24 +106,21 @@ function LandingPage() {
                 asChild
                 className="rounded-lg border-border/80 bg-white/90 px-6 backdrop-blur-sm"
               >
-                <Link href="/login">View dashboard</Link>
+                <Link href="/login">{t("viewDashboard")}</Link>
               </Button>
             </div>
           </div>
 
-          {/* Search card */}
           <Card className="mx-auto mt-12 max-w-3xl overflow-visible rounded-2xl border-border/60 bg-white shadow-xl sm:mt-14">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl">Where to next?</CardTitle>
-              <CardDescription>
-                Enter your trip details and generate a personalized plan
-              </CardDescription>
+              <CardTitle className="text-xl">{t("searchTitle")}</CardTitle>
+              <CardDescription>{t("searchDescription")}</CardDescription>
             </CardHeader>
             <CardContent className="overflow-visible">
               <div className="grid gap-4 sm:grid-cols-3">
                 <AirportSearchInput
                   id="home-from"
-                  label="From"
+                  label={tCommon("from")}
                   value={from}
                   onChange={setFrom}
                   placeholder="New York"
@@ -142,7 +129,7 @@ function LandingPage() {
                 />
                 <AirportSearchInput
                   id="home-to"
-                  label="To"
+                  label={tCommon("to")}
                   value={to}
                   onChange={setTo}
                   placeholder="Paris"
@@ -155,7 +142,7 @@ function LandingPage() {
                   returnDate=""
                   onDepartureChange={setDeparture}
                   onReturnChange={() => {}}
-                  label="Date"
+                  label={tCommon("date")}
                 />
               </div>
               <Button
@@ -165,7 +152,7 @@ function LandingPage() {
               >
                 <>
                   <Sparkles className="size-4" />
-                  Generate trip
+                  {t("generateTrip")}
                 </>
               </Button>
             </CardContent>
@@ -173,58 +160,54 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* Features */}
       <section id="features" className="py-20 sm:py-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mx-auto max-w-2xl text-center">
             <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-              Everything you need to travel smarter
+              {t("featuresTitle")}
             </h2>
-            <p className="mt-3 text-muted-foreground">
-              One platform for planning, booking, and exploring
-            </p>
+            <p className="mt-3 text-muted-foreground">{t("featuresSubtitle")}</p>
           </div>
           <div className="mt-12 grid gap-6 sm:grid-cols-3">
-            {features.map((feature) => {
-              const Icon = feature.icon
-              return (
-                <Card
-                  key={feature.title}
-                  className="rounded-2xl border-border/60 transition-all duration-300 hover:shadow-md"
-                >
-                  <CardHeader>
-                    <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
-                      <Icon className="size-5" />
-                    </div>
-                    <CardTitle className="text-base">{feature.title}</CardTitle>
-                    <CardDescription className="leading-relaxed">
-                      {feature.description}
-                    </CardDescription>
-                  </CardHeader>
-                </Card>
-              )
-            })}
+            {featureConfig.map(({ key, icon: Icon }) => (
+              <Card
+                key={key}
+                className="rounded-2xl border-border/60 transition-all duration-300 hover:shadow-md"
+              >
+                <CardHeader>
+                  <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
+                    <Icon className="size-5" />
+                  </div>
+                  <CardTitle className="text-base">
+                    {t(`features.${key}.title`)}
+                  </CardTitle>
+                  <CardDescription className="leading-relaxed">
+                    {t(`features.${key}.description`)}
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Example trips */}
-      <section id="trips" className="border-y border-border/60 bg-muted/20 py-20 sm:py-24">
+      <section
+        id="trips"
+        className="border-y border-border/60 bg-muted/20 py-20 sm:py-24"
+      >
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="flex flex-wrap items-end justify-between gap-4">
             <div>
               <h2 className="text-balance text-3xl font-bold tracking-tight sm:text-4xl">
-                Example trips
+                {t("examplesTitle")}
               </h2>
-              <p className="mt-2 text-muted-foreground">
-                Get inspired by these AI-generated itineraries
-              </p>
+              <p className="mt-2 text-muted-foreground">{t("examplesSubtitle")}</p>
             </div>
             <Link
               href="/examples"
               className="inline-flex items-center gap-1 text-sm font-medium text-foreground transition-colors hover:text-muted-foreground"
             >
-              See all trips
+              {t("seeAllTrips")}
               <ArrowRight className="size-4" />
             </Link>
           </div>
@@ -236,7 +219,6 @@ function LandingPage() {
         </div>
       </section>
 
-      {/* CTA */}
       <section className="pb-20 sm:pb-24">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="overflow-hidden rounded-3xl bg-primary px-6 py-14 text-center sm:px-16 sm:py-20">
@@ -244,10 +226,10 @@ function LandingPage() {
               <Wallet className="size-7 text-primary-foreground" />
             </span>
             <h2 className="mt-6 text-balance text-3xl font-bold tracking-tight text-primary-foreground sm:text-4xl">
-              Ready for your next adventure?
+              {t("ctaTitle")}
             </h2>
             <p className="mx-auto mt-4 max-w-lg text-pretty text-primary-foreground/80">
-              Join thousands of travelers planning smarter with Flycation.
+              {t("ctaSubtitle")}
             </p>
             <Button
               size="lg"
@@ -255,7 +237,7 @@ function LandingPage() {
               asChild
               className="mt-8 rounded-lg px-8"
             >
-              <Link href="/register">Create free account</Link>
+              <Link href="/register">{t("createFreeAccount")}</Link>
             </Button>
           </div>
         </div>

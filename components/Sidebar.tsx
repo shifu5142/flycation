@@ -1,7 +1,7 @@
 "use client"
 
-import Link from "next/link"
-import { usePathname, useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
+import { usePathname, useRouter } from "@/i18n/navigation"
 import {
   BookOpen,
   Compass,
@@ -14,7 +14,9 @@ import {
   Sparkles,
 } from "lucide-react"
 
+import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { useAuth } from "@/components/AuthProvider"
+import { Link } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -24,19 +26,21 @@ import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/ai-trip-planner", label: "AI Trip Planner", icon: Sparkles },
-  { href: "/my-trips", label: "My Trips", icon: Map },
-  { href: "/explore", label: "Explore", icon: Compass },
-  { href: "/my-bookings", label: "My Bookings", icon: BookOpen },
-  { href: "/settings", label: "Settings", icon: Settings },
+  { href: "/dashboard" as const, labelKey: "dashboard" as const, icon: LayoutDashboard },
+  { href: "/ai-trip-planner" as const, labelKey: "aiTripPlanner" as const, icon: Sparkles },
+  { href: "/my-trips" as const, labelKey: "myTrips" as const, icon: Map },
+  { href: "/explore" as const, labelKey: "explore" as const, icon: Compass },
+  { href: "/my-bookings" as const, labelKey: "myBookings" as const, icon: BookOpen },
+  { href: "/settings" as const, labelKey: "settings" as const, icon: Settings },
 ]
 
 function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
+  const t = useTranslations("sidebar")
+  const tCommon = useTranslations("common")
   const { displayName, firstName, email, avatar, loading } = useAuth()
-  const name = displayName || firstName || email.split("@")[0] || "Traveler"
+  const name = displayName || firstName || email.split("@")[0] || t("traveler")
   const initials = (firstName || name).charAt(0).toUpperCase() || "?"
 
   const handleLogout = async () => {
@@ -59,11 +63,14 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <div className="flex h-full flex-col">
-      <div className="flex items-center gap-2 px-4 py-6">
-        <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
-          <Plane className="size-4" />
+      <div className="flex items-center justify-between gap-2 px-4 py-6">
+        <div className="flex items-center gap-2">
+          <div className="flex size-9 items-center justify-center rounded-xl bg-primary text-primary-foreground">
+            <Plane className="size-4" />
+          </div>
+          <span className="text-lg font-semibold">{tCommon("appName")}</span>
         </div>
-        <span className="text-lg font-semibold">Flycation</span>
+        <LanguageSwitcher />
       </div>
 
       <Separator />
@@ -91,7 +98,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
                 )}
               >
                 <Icon className="size-4" />
-                {item.label}
+                {t(item.labelKey)}
               </Link>
             )
           })}
@@ -121,7 +128,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
           onClick={handleLogout}
         >
           <LogOut className="size-4" />
-          Log out
+          {t("logout")}
         </Button>
       </div>
     </div>
@@ -152,13 +159,16 @@ function MobileSidebar() {
 }
 
 function DashboardShell({ children }: { children: React.ReactNode }) {
+  const tCommon = useTranslations("common")
+
   return (
     <div className="flex min-h-screen">
       <Sidebar />
       <div className="flex flex-1 flex-col">
         <div className="flex items-center gap-3 border-b px-4 py-3 lg:hidden">
           <MobileSidebar />
-          <span className="font-semibold">Flycation</span>
+          <span className="flex-1 font-semibold">{tCommon("appName")}</span>
+          <LanguageSwitcher />
         </div>
         <main className="flex-1 overflow-auto bg-background p-4 sm:p-6 lg:p-8">
           {children}

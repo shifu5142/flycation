@@ -1,4 +1,7 @@
-import Link from "next/link"
+"use client"
+
+import { useTranslations } from "next-intl"
+import { Link } from "@/i18n/navigation"
 import { MapPin, Star } from "lucide-react"
 
 import type { Trip } from "@/lib/mockTrips"
@@ -11,6 +14,7 @@ interface ExampleTripCardProps {
 }
 
 function ExampleTripCard({ trip, guest = false }: ExampleTripCardProps) {
+  const t = useTranslations("common")
   const href = guest ? `/examples/${trip.id}` : `/trip/${trip.id}`
 
   return (
@@ -24,7 +28,7 @@ function ExampleTripCard({ trip, guest = false }: ExampleTripCardProps) {
           />
           {guest && (
             <Badge className="absolute top-3 left-3 border-0 bg-background/90 text-foreground backdrop-blur-sm">
-              Preview
+              {t("preview")}
             </Badge>
           )}
           <Badge className="absolute top-3 right-3 gap-1 border-0 bg-background/90 text-foreground backdrop-blur-sm">
@@ -45,12 +49,14 @@ function ExampleTripCard({ trip, guest = false }: ExampleTripCardProps) {
             ))}
           </div>
           <div className="mt-4 flex items-center justify-between text-sm">
-            <span className="text-muted-foreground">{trip.durationDays} days</span>
+            <span className="text-muted-foreground">
+              {trip.durationDays} {t("days")}
+            </span>
             <span>
               <span className="font-semibold">
                 ${trip.pricePerPerson.toLocaleString()}
               </span>
-              <span className="text-muted-foreground"> / person</span>
+              <span className="text-muted-foreground">{t("perPerson")}</span>
             </span>
           </div>
         </CardContent>

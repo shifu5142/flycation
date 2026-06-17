@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import {
   Loader2,
@@ -11,6 +11,7 @@ import {
   User,
   UserPlus,
 } from "lucide-react"
+import { Link } from "@/i18n/navigation"
 import { supabase } from "@/app/services/supabase/client"
 import { AuthLayout } from "@/components/auth/AuthLayout"
 import { IconInput } from "@/components/auth/IconInput"
@@ -35,6 +36,7 @@ type FormStatus = {
 
 function RegisterPage() {
   const router = useRouter()
+  const t = useTranslations("auth")
   const [form, setForm] = useState({
     first_name: "",
     last_name: "",
@@ -55,23 +57,23 @@ function RegisterPage() {
     setStatus(null)
 
     if (!form.first_name.trim()) {
-      setStatus({ type: "error", message: "First name is required" })
+      setStatus({ type: "error", message: t("firstNameRequired") })
       return
     }
     if (!form.last_name.trim()) {
-      setStatus({ type: "error", message: "Last name is required" })
+      setStatus({ type: "error", message: t("lastNameRequired") })
       return
     }
     if (!form.email.trim()) {
-      setStatus({ type: "error", message: "Email is required" })
+      setStatus({ type: "error", message: t("emailRequired") })
       return
     }
     if (form.password !== form.confirmPassword) {
-      setStatus({ type: "error", message: "Passwords do not match" })
+      setStatus({ type: "error", message: t("passwordsMismatch") })
       return
     }
     if (form.password.length < 6) {
-      setStatus({ type: "error", message: "Password must be at least 6 characters" })
+      setStatus({ type: "error", message: t("passwordMinLength") })
       return
     }
 
@@ -91,7 +93,7 @@ function RegisterPage() {
         throw error
       }
       if (data.user) {
-        setStatus({ type: "success", message: "Account created! Redirecting to login page…" })
+        setStatus({ type: "success", message: t("accountCreated") + " " + t("verifyEmailBeforeLogin") })
         setTimeout(() => router.push("/login"), 1500)
       }
     } catch (error) {
@@ -111,9 +113,9 @@ function RegisterPage() {
             <UserPlus className="size-7 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Create account</CardTitle>
+            <CardTitle className="text-2xl">{t("createAccountTitle")}</CardTitle>
             <CardDescription className="mt-1.5">
-              Start planning your next Flycation
+              {t("registerSubtitle")}
             </CardDescription>
           </div>
         </CardHeader>
@@ -124,7 +126,7 @@ function RegisterPage() {
               <IconInput
                 id="first_name"
                 name="first_name"
-                label="First name"
+                label={t("firstName")}
                 icon={User}
                 placeholder="Alex"
                 value={form.first_name}
@@ -134,7 +136,7 @@ function RegisterPage() {
               <IconInput
                 id="last_name"
                 name="last_name"
-                label="Last name"
+                label={t("lastName")}
                 icon={User}
                 placeholder="Morgan"
                 value={form.last_name}
@@ -146,7 +148,7 @@ function RegisterPage() {
             <IconInput
               id="email"
               name="email"
-              label="Email"
+              label={t("email")}
               icon={Mail}
               type="email"
               placeholder="you@example.com"
@@ -158,7 +160,7 @@ function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="password" className="flex items-center gap-1.5 text-sm font-medium">
                 <Lock className="size-3.5 text-primary" />
-                Password
+                {t("password")}
               </Label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -178,7 +180,7 @@ function RegisterPage() {
             <div className="space-y-2">
               <Label htmlFor="confirmPassword" className="flex items-center gap-1.5 text-sm font-medium">
                 <Lock className="size-3.5 text-primary" />
-                Confirm password
+                {t("confirmPassword")}
               </Label>
               <div className="relative">
                 <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -207,12 +209,12 @@ function RegisterPage() {
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Creating account…
+                  {t("creatingAccount")}
                 </>
               ) : (
                 <>
                   <UserPlus className="size-4" />
-                  Register
+                  {t("register")}
                 </>
               )}
             </Button>
@@ -223,13 +225,13 @@ function RegisterPage() {
           <div className="relative w-full">
             <Separator />
             <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
-              Already have an account?
+              {t("alreadyHaveAccount")}
             </span>
           </div>
           <Button variant="outline" asChild className="w-full rounded-xl">
             <Link href="/login">
               <LogIn className="size-4" />
-              Log in
+              {t("logIn")}
             </Link>
           </Button>
         </CardFooter>

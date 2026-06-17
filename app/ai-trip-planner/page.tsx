@@ -1,6 +1,7 @@
 "use client"
 
 import { useRef, useState } from "react"
+import { useLocale, useTranslations } from "next-intl"
 import { ChevronDown, Sparkles } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
@@ -16,9 +17,12 @@ import {
 } from "@/lib/aiTripIntake"
 
 function AiTripPlannerPage() {
+  const t = useTranslations("aiTripPlanner")
+  const locale = useLocale()
   const [tripAnswers, setTripAnswers] =
     useState<TripIntakeData>(INITIAL_TRIP_INTAKE)
   const [generating, setGenerating] = useState(false)
+  const [generateError, setGenerateError] = useState(false)
   const [showPlan, setShowPlan] = useState(false)
   const [generatedPlan, setGeneratedPlan] =
     useState<AiGeneratedTripPlan | null>(null)
@@ -28,6 +32,7 @@ function AiTripPlannerPage() {
     if (!isIntakeComplete(tripAnswers)) return
 
     setGenerating(true)
+    setGenerateError(false)
     setShowPlan(false)
     setGeneratedPlan(null)
 
@@ -35,7 +40,7 @@ function AiTripPlannerPage() {
       const res = await fetch("/api/ai", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tripAnswers }),
+        body: JSON.stringify({ tripAnswers, locale }),
       })
 
       const data = (await res.json()) as AiGeneratedTripPlan & {
@@ -50,6 +55,7 @@ function AiTripPlannerPage() {
       setShowPlan(true)
     } catch (error) {
       console.error("Trip generation error:", error)
+      setGenerateError(true)
       setShowPlan(false)
     } finally {
       setGenerating(false)
@@ -58,6 +64,7 @@ function AiTripPlannerPage() {
 
   const handleReset = () => {
     setTripAnswers(INITIAL_TRIP_INTAKE)
+    setGenerateError(false)
     setShowPlan(false)
     setGeneratedPlan(null)
   }
@@ -69,14 +76,13 @@ function AiTripPlannerPage() {
           <div className="relative z-10 max-w-2xl space-y-2">
             <Badge variant="secondary" className="rounded-full">
               <Sparkles className="size-3" />
-              Powered by AI
+              {t("badge")}
             </Badge>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              AI Trip Planner
+              {t("title")}
             </h1>
             <p className="text-muted-foreground">
-              Your travel assistant interviews you first, then builds a complete
-              personalized itinerary from your answers.
+              {t("subtitle")}
             </p>
           </div>
           <Sparkles className="pointer-events-none absolute -right-2 -bottom-2 size-32 text-primary/10" />
@@ -86,6 +92,7 @@ function AiTripPlannerPage() {
           tripAnswers={tripAnswers}
           setTripAnswers={setTripAnswers}
           generating={generating}
+          generateError={generateError}
           onGenerate={handleGenerate}
           onReset={handleReset}
         />
@@ -100,9 +107,9 @@ function AiTripPlannerPage() {
               })
             }
             className="-mt-12 mx-auto flex w-full flex-col items-center gap-1 pb-1 text-muted-foreground transition-colors hover:text-primary"
-            aria-label="Scroll to your generated plan"
+            aria-label={t("scrollToPlan")}
           >
-            <span className="text-xs font-medium">Your plan is ready</span>
+            <span className="text-xs font-medium">{t("planReady")}</span>
             <ChevronDown className="size-6 animate-bounce" />
           </button>
         )}
@@ -113,7 +120,7 @@ function AiTripPlannerPage() {
               <Separator className="flex-1" />
               <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
                 <Sparkles className="size-4 text-primary" />
-                Your generated plan
+                {t("generatedPlan")}
               </span>
               <Separator className="flex-1" />
             </div>

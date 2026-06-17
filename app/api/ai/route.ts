@@ -1,6 +1,28 @@
 import { generateText } from "ai"
 import { z } from "zod"
 
+import { resolveAppLocale } from "@/i18n/locales"
+import type { TripIntakeData } from "@/lib/aiTripIntake"
+import { ensureEnglishTripAnswers } from "@/lib/translateTripAnswers"
+
+function parseAiJson(raw: string): unknown {
+  const cleaned = raw
+    .replace(/```json/g, "")
+    .replace(/```/g, "")
+    .trim()
+
+  try {
+    return JSON.parse(cleaned)
+  } catch {
+    const start = cleaned.indexOf("{")
+    const end = cleaned.lastIndexOf("}")
+    if (start !== -1 && end > start) {
+      return JSON.parse(cleaned.slice(start, end + 1))
+    }
+    throw new Error("AI response did not contain valid JSON")
+  }
+}
+
 const TripSchema = z.object({
   hero: z.object({
     destination: z.string(),
@@ -41,6 +63,21 @@ const TripSchema = z.object({
 export async function POST(req: Request) {
   try {
     const body = await req.json()
+    const locale = resolveAppLocale(body.locale)
+
+    let tripAnswers: TripIntakeData
+    try {
+      tripAnswers = await ensureEnglishTripAnswers(
+        body.tripAnswers as TripIntakeData,
+        locale
+      )
+    } catch (translateErr) {
+      console.error("Trip answers translation error:", translateErr)
+      return Response.json(
+        { error: "Failed to translate trip answers to English" },
+        { status: 500 }
+      )
+    }
 
     const promptAi = `
 You are an expert travel planning AI.
@@ -55,16 +92,17 @@ IMPORTANT RULES
 - Do NOT include text before or after the JSON.
 - Always return ALL sections.
 - Never omit properties.
-- Use English.
+- Always write all user-facing text values in English.
+- JSON property names must stay in English.
 - Generate realistic recommendations.
 - The response will be parsed directly by the frontend.
 - Always return arrays even if they are empty.
 - Prices should include "$".
 - Return enough information to build an entire vacation page.
 
-USER PREFERENCES:
+USER PREFERENCES (always in English):
 
-${JSON.stringify(body.tripAnswers, null, 2)}
+${JSON.stringify(tripAnswers, null, 2)}
 
 OUTPUT FORMAT
 
@@ -235,17 +273,11 @@ No additional text.
     })
 
     const raw = result.text
-
-    // remove possible ```json wrappers
-    const cleaned = raw
-      .replace(/```json/g, "")
-      .replace(/```/g, "")
-      .trim()
-
-    const json = JSON.parse(cleaned)
+    const json = parseAiJson(raw)
 
     return Response.json(json)
   } catch (err) {
+    console.error("AI trip generation error:", err)
     return Response.json(
       { error: "Invalid AI response" },
       { status: 500 }

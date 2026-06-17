@@ -1,7 +1,7 @@
 "use client"
 
 import { Suspense, useEffect, useState } from "react"
-import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Loader2,
@@ -10,6 +10,7 @@ import {
   Mail,
   UserPlus,
 } from "lucide-react"
+import { Link } from "@/i18n/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { formatOAuthError } from "@/lib/format-oauth-error"
 import { AuthLayout } from "@/components/auth/AuthLayout"
@@ -37,6 +38,7 @@ type FormStatus = {
 function LoginPageContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const t = useTranslations("auth")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
@@ -55,7 +57,7 @@ function LoginPageContent() {
     const checkSessionExists = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (user) {
-        setStatus({ type: "success", message: "You are already logged in" })
+        setStatus({ type: "success", message: t("alreadyLoggedIn") })
         setTimeout(() => {
           router.replace("/dashboard")
         }, 1500)
@@ -68,11 +70,11 @@ function LoginPageContent() {
     setStatus(null)
 
     if (!email.trim()) {
-      setStatus({ type: "error", message: "Email is required" })
+      setStatus({ type: "error", message: t("emailRequired") })
       return
     }
     if (!password) {
-      setStatus({ type: "error", message: "Password is required" })
+      setStatus({ type: "error", message: t("passwordRequired") })
       return
     }
 
@@ -83,19 +85,22 @@ function LoginPageContent() {
         password,
       })
       if (error) {
-        setStatus({ type: "error", message: "please verify your email" })
+        setStatus({ type: "error", message: t("verifyEmail") })
         return
       }
       if (data.session) {
-        setStatus({ type: "success", message: "Sign-in successful" })
+        setStatus({ type: "success", message: t("signInSuccess") })
         setTimeout(() => {
           router.replace("/dashboard")
         }, 1500)
         return
       }
-      setStatus({ type: "error", message: "Sign-in failed. Please try again." })
+      setStatus({ type: "error", message: t("signInFailed") })
     } catch (error) {
-      setStatus({ type: "error", message: error instanceof Error ? "please verify your email" : "Invalid email or password" })
+      setStatus({
+        type: "error",
+        message: error instanceof Error ? t("verifyEmail") : t("verifyEmail"),
+      })
     } finally {
       setLoading(false)
     }
@@ -118,7 +123,7 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
       console.error(error)
       setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "Google sign-in failed",
+        message: error instanceof Error ? error.message : t("googleSignInFailed"),
       })
       setLoading(false)
     }
@@ -141,7 +146,7 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
       console.error(error)
       setStatus({
         type: "error",
-        message: error instanceof Error ? error.message : "GitHub sign-in failed",
+        message: error instanceof Error ? error.message : t("githubSignInFailed"),
       })
       setLoading(false)
     }
@@ -154,9 +159,9 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
             <LogIn className="size-7 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Welcome back</CardTitle>
+            <CardTitle className="text-2xl">{t("welcomeBack")}</CardTitle>
             <CardDescription className="mt-1.5">
-              Sign in to continue planning your adventures
+              {t("signInSubtitle")}
             </CardDescription>
           </div>
         </CardHeader>
@@ -165,7 +170,7 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
           <form onSubmit={handleLogin} className="space-y-4">
             <IconInput
               id="email"
-              label="Email"
+              label={t("email")}
               icon={Mail}
               type="email"
               placeholder="you@example.com"
@@ -181,13 +186,13 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-1.5 text-sm font-medium">
                   <Lock className="size-3.5 text-primary" />
-                  Password
+                  {t("password")}
                 </span>
                 <button
                   type="button"
                   className="text-xs font-medium text-primary hover:underline"
                 >
-                  Forgot password?
+                  {t("forgotPassword")}
                 </button>
               </div>
               <div className="relative">
@@ -219,12 +224,12 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
               {loading ? (
                 <>
                   <Loader2 className="size-4 animate-spin" />
-                  Signing in…
+                  {t("signingIn")}
                 </>
               ) : (
                 <>
                   <LogIn className="size-4" />
-                  Log in
+                  {t("logIn")}
                 </>
               )}
             </Button>
@@ -237,7 +242,7 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
               onClick={handlegoogleLogin}
             >
               <FaGoogle className="size-4" />
-              Sign in with Google
+              {t("signInGoogle")}
             </Button>
             <Button
               type="button"
@@ -248,7 +253,7 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
               onClick={handlegithubLogin}
             >
               <FaGithub className="size-4" />
-              Sign in with Github
+              {t("signInGithub")}
             </Button>
           </form>
         </CardContent>
@@ -257,13 +262,13 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
           <div className="relative w-full">
             <Separator />
             <span className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-3 text-xs text-muted-foreground">
-              New to Flycation?
+              {t("newToFlycation")}
             </span>
           </div>
           <Button variant="outline" asChild className="w-full rounded-xl">
             <Link href="/register">
               <UserPlus className="size-4" />
-              Create an account
+              {t("createAccount")}
             </Link>
           </Button>
         </CardFooter>

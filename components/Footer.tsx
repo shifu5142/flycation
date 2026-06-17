@@ -1,37 +1,44 @@
-import Link from "next/link"
+"use client"
+
+import { useTranslations } from "next-intl"
 import { Plane } from "lucide-react"
 
-const columns = [
-  {
-    title: "Product",
-    links: [
-      { label: "Features", href: "/#features" },
-      { label: "Example trips", href: "/examples" },
-      { label: "Pricing", href: "/pricing" },
-      { label: "Start planning", href: "/start" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "About", href: "/about" },
-      { label: "Careers", href: "/about" },
-      { label: "Blog", href: "/about" },
-      { label: "Press", href: "/about" },
-    ],
-  },
-  {
-    title: "Support",
-    links: [
-      { label: "Help center", href: "/about" },
-      { label: "Contact", href: "/about" },
-      { label: "Privacy", href: "/about" },
-      { label: "Terms", href: "/about" },
-    ],
-  },
-]
+import { Link } from "@/i18n/navigation"
 
 function Footer() {
+  const t = useTranslations("footer")
+  const tCommon = useTranslations("common")
+
+  const columns = [
+    {
+      title: t("product"),
+      links: [
+        { label: t("features"), href: "/#features" as const },
+        { label: t("exampleTrips"), href: "/examples" as const },
+        { label: t("pricing"), href: "/pricing" as const },
+        { label: t("startPlanning"), href: "/start" as const },
+      ],
+    },
+    {
+      title: t("company"),
+      links: [
+        { label: t("about"), href: "/about" as const },
+        { label: t("careers"), href: "/about" as const },
+        { label: t("blog"), href: "/about" as const },
+        { label: t("press"), href: "/about" as const },
+      ],
+    },
+    {
+      title: t("support"),
+      links: [
+        { label: t("helpCenter"), href: "/about" as const },
+        { label: t("contact"), href: "/about" as const },
+        { label: t("privacy"), href: "/about" as const },
+        { label: t("terms"), href: "/about" as const },
+      ],
+    },
+  ]
+
   return (
     <footer className="border-t border-border/60 bg-muted/30">
       <div className="mx-auto max-w-7xl px-4 py-12 sm:px-6 lg:px-8">
@@ -41,11 +48,10 @@ function Footer() {
               <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 <Plane className="size-4" />
               </span>
-              <span className="text-lg tracking-tight">Flycation</span>
+              <span className="text-lg tracking-tight">{tCommon("appName")}</span>
             </Link>
             <p className="mt-4 max-w-xs text-sm leading-relaxed text-muted-foreground">
-              AI-powered trip planning. Describe your dream getaway and we handle
-              the rest.
+              {t("tagline")}
             </p>
           </div>
 
@@ -69,8 +75,10 @@ function Footer() {
         </div>
 
         <div className="mt-10 flex flex-col items-center justify-between gap-4 border-t border-border/60 pt-6 text-sm text-muted-foreground sm:flex-row">
-          <p>© {new Date().getFullYear()} Flycation. All rights reserved.</p>
-          <p>Made for travelers, by travelers.</p>
+          <p>
+            © {new Date().getFullYear()} {tCommon("appName")}. {t("rights")}
+          </p>
+          <p>{t("madeBy")}</p>
         </div>
       </div>
     </footer>
