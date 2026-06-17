@@ -83,7 +83,7 @@ function LoginPageContent() {
         password,
       })
       if (error) {
-        setStatus({ type: "error", message: 'Invalid email or password' })
+        setStatus({ type: "error", message: "please verify your email" })
         return
       }
       if (data.session) {
@@ -95,9 +95,7 @@ function LoginPageContent() {
       }
       setStatus({ type: "error", message: "Sign-in failed. Please try again." })
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Invalid email or password"
-      setStatus({ type: "error", message })
+      setStatus({ type: "error", message: error instanceof Error ? "please verify your email" : "Invalid email or password" })
     } finally {
       setLoading(false)
     }
