@@ -1,13 +1,18 @@
 import type { ComponentType } from "react"
+import { useEffect, useState } from "react"
 import {
+  BedDouble,
   Building2,
   CalendarDays,
   CloudSun,
+  Crown,
   Download,
+  Home,
   Landmark,
   Lightbulb,
   MapPin,
   Moon,
+  Palmtree,
   Plane,
   RefreshCw,
   Save,
@@ -19,6 +24,7 @@ import {
   TreePine,
   Utensils,
   Wallet,
+  Waves,
   Wine,
 } from "lucide-react"
 
@@ -38,6 +44,7 @@ import {
   type ActivityIconType,
   type AiGeneratedTripPlan,
 } from "@/lib/aiGeneratedTripPlanTypes"
+import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
 
 function ActivityTypeIcon({
   type,
@@ -63,6 +70,76 @@ function PeriodIcon({ period }: { period: string }) {
   if (period === "Afternoon")
     return <Sunset className="size-3.5 text-orange-500" />
   return <Moon className="size-3.5 text-indigo-500" />
+}
+
+type HotelData = AiGeneratedTripPlan["hotels"][number]
+
+function getHotelIcon(hotel: HotelData): ComponentType<{ className?: string }> {
+  const text = [
+    hotel.name,
+    hotel.description,
+    hotel.priceLevel,
+    hotel.location,
+    ...(hotel.amenities ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase()
+
+  if (
+    text.includes("luxury") ||
+    text.includes("5-star") ||
+    text.includes("premium") ||
+    text.includes("suite")
+  ) {
+    return Crown
+  }
+  if (
+    text.includes("resort") ||
+    text.includes("beach") ||
+    text.includes("coastal") ||
+    text.includes("seaside")
+  ) {
+    return Palmtree
+  }
+  if (
+    text.includes("pool") ||
+    text.includes("spa") ||
+    text.includes("wellness")
+  ) {
+    return Waves
+  }
+  if (
+    text.includes("boutique") ||
+    text.includes("apartment") ||
+    text.includes("villa") ||
+    text.includes("guesthouse")
+  ) {
+    return Home
+  }
+  if (
+    text.includes("hostel") ||
+    text.includes("budget") ||
+    text.includes("inn") ||
+    text.includes("motel")
+  ) {
+    return BedDouble
+  }
+  if (text.includes("historic") || text.includes("heritage")) {
+    return Landmark
+  }
+
+  return Building2
+}
+
+function HotelVisual({ hotel }: { hotel: HotelData }) {
+  const Icon = getHotelIcon(hotel)
+
+  return (
+    <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-primary/10 sm:h-28 sm:w-28">
+      <Icon className="size-10 text-primary sm:size-12" />
+    </div>
+  )
 }
 
 function TipsList({
@@ -98,7 +175,21 @@ function TipsList({
 
 export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
   const { hero, budgetBreakdown } = plan
+  const [heroImageUrl, setHeroImageUrl] = useState(hero.image)
   const budgetTotal = parsePriceAmount(budgetBreakdown.total)
+
+  useEffect(() => {
+    setHeroImageUrl(hero.image)
+
+    const loadCountryImage = async () => {
+      if (!hero.country?.trim()) return
+
+      const url = await fetchCountryImageUrl(hero.country, hero.destination)
+      if (url) setHeroImageUrl(url)
+    }
+
+    loadCountryImage()
+  }, [hero.country, hero.destination, hero.image])
 
   const budgetRows = [
     { label: "Flights", value: budgetBreakdown.flights, icon: Plane },
@@ -120,7 +211,7 @@ export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
         <div className="grid md:grid-cols-[1.2fr_1fr]">
           <div className="relative h-48 md:h-auto md:min-h-[220px]">
             <img
-              src={hero.image}
+              src={heroImageUrl}
               alt={hero.destination}
               className="size-full object-cover"
             />
@@ -228,17 +319,7 @@ export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
                   className="overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:shadow-md"
                 >
                   <div className="flex">
-                    {hotel.image ? (
-                      <img
-                        src={hotel.image}
-                        alt={hotel.name}
-                        className="h-24 w-24 shrink-0 object-cover sm:h-28 sm:w-28"
-                      />
-                    ) : (
-                      <div className="flex h-24 w-24 shrink-0 items-center justify-center bg-muted sm:h-28 sm:w-28">
-                        <Building2 className="size-8 text-muted-foreground" />
-                      </div>
-                    )}
+                    <HotelVisual hotel={hotel} />
                     <CardContent className="flex flex-1 flex-col justify-center gap-1 p-4">
                       <p className="font-semibold">{hotel.name}</p>
                       <p className="flex items-center gap-1 text-xs text-muted-foreground">

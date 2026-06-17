@@ -1,7 +1,7 @@
 "use client"
 
-import { useState } from "react"
-import { Sparkles } from "lucide-react"
+import { useRef, useState } from "react"
+import { ChevronDown, Sparkles } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
 import { DashboardShell } from "@/components/Sidebar"
@@ -22,6 +22,7 @@ function AiTripPlannerPage() {
   const [showPlan, setShowPlan] = useState(false)
   const [generatedPlan, setGeneratedPlan] =
     useState<AiGeneratedTripPlan | null>(null)
+  const planRef = useRef<HTMLDivElement>(null)
 
   const handleGenerate = async () => {
     if (!isIntakeComplete(tripAnswers)) return
@@ -90,7 +91,24 @@ function AiTripPlannerPage() {
         />
 
         {showPlan && generatedPlan && !generating && (
-          <div className="space-y-6">
+          <button
+            type="button"
+            onClick={() =>
+              planRef.current?.scrollIntoView({
+                behavior: "smooth",
+                block: "start",
+              })
+            }
+            className="-mt-12 mx-auto flex w-full flex-col items-center gap-1 pb-1 text-muted-foreground transition-colors hover:text-primary"
+            aria-label="Scroll to your generated plan"
+          >
+            <span className="text-xs font-medium">Your plan is ready</span>
+            <ChevronDown className="size-6 animate-bounce" />
+          </button>
+        )}
+
+        {showPlan && generatedPlan && !generating && (
+          <div ref={planRef} className="space-y-6 scroll-mt-6">
             <div className="flex items-center gap-4">
               <Separator className="flex-1" />
               <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">

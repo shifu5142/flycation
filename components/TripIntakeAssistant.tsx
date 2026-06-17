@@ -106,6 +106,7 @@ function TripSummaryPanel({
   onGenerate: () => void
   onReset: () => void
 }) {
+  const [showSlowHint, setShowSlowHint] = useState(false)
   const complete = isIntakeComplete(data)
   const progress =
     [
@@ -116,6 +117,21 @@ function TripSummaryPanel({
       data.travelers,
       data.interests.length > 0 ? "done" : null,
     ].filter(Boolean).length
+
+  useEffect(() => {
+    if (!generating) {
+      setShowSlowHint(false)
+      return
+    }
+
+    const showHintTimer = setTimeout(() => setShowSlowHint(true), 3000)
+    const hideHintTimer = setTimeout(() => setShowSlowHint(false), 8000)
+
+    return () => {
+      clearTimeout(showHintTimer)
+      clearTimeout(hideHintTimer)
+    }
+  }, [generating])
 
   return (
     <Card className="sticky top-4 rounded-2xl border-primary/15 shadow-lg shadow-primary/5">
@@ -183,7 +199,7 @@ function TripSummaryPanel({
           {generating ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              Generating trip…
+              {showSlowHint ? "Will take few seconds" : "Generating trip…"}
             </>
           ) : (
             <>

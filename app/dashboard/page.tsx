@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
 import { supabase } from "@/app/services/supabase/client"
 const TRAVEL_CLASSES = [
   "Economy",
@@ -75,12 +76,8 @@ function DashboardPage() {
       if (!to.trim()) return
 
       try {
-        const params = new URLSearchParams({ country: to.trim() })
-        const res = await fetch(`/api/country-image?${params.toString()}`)
-        if (!res.ok) return
-
-        const data = (await res.json()) as { url?: string }
-        if (data.url) setCountriesImageUrl(data.url)
+        const url = await fetchCountryImageUrl(to)
+        if (url) setCountriesImageUrl(url)
       } catch (err) {
         console.error("Image fetch failed:", err)
       }
@@ -165,12 +162,7 @@ function DashboardPage() {
 
       try {
         if (!imageUrl) {
-          const params = new URLSearchParams({ country: to.trim() })
-          const res = await fetch(`/api/country-image?${params.toString()}`)
-          if (res.ok) {
-            const data = (await res.json()) as { url?: string }
-            imageUrl = data.url ?? null
-          }
+          imageUrl = await fetchCountryImageUrl(to)
         }
       } catch (err) {
         console.error("Image fetch failed:", err);
