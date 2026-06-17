@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Camera, Moon, Sun, Trash2, TriangleAlert } from "lucide-react"
+import { Camera, KeyRound, Moon, ShieldAlert, Sun, Trash2 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
 import { useTheme } from "@/components/ThemeProvider"
@@ -105,7 +105,7 @@ function SettingsPage() {
         return
       }
   
-      const response = await fetch("/settings/api", {
+      const response = await fetch("/api/setting-delete", {
         method: "DELETE",
         headers: {
           "Content-Type": "application/json",
@@ -331,44 +331,58 @@ function SettingsPage() {
                       Delete account
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="gap-6 sm:max-w-md">
-                    <DialogHeader className="space-y-2">
-                      <DialogTitle className="flex items-center gap-2 text-destructive">
-                        <TriangleAlert className="size-5 shrink-0" />
-                        Delete account?
-                      </DialogTitle>
-                      <DialogDescription>
-                        This will permanently remove your account and all
-                        associated data.
-                      </DialogDescription>
-                    </DialogHeader>
-
-                    <div className="rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3">
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        Warning: This action is permanent and cannot be undone.
-                        All your trips and data will be permanently removed. To
-                        continue, type &quot;CONFIRM DELETE ACCOUNT&quot;.
-                      </p>
+                  <DialogContent
+                    overlayClassName="bg-black/55 backdrop-blur-sm"
+                    className="gap-0 overflow-hidden border border-destructive/25 bg-background p-0 shadow-xl shadow-destructive/15 sm:max-w-md"
+                  >
+                    <div className="border-b border-destructive/15 bg-destructive/5 px-6 py-5">
+                      <DialogHeader className="space-y-3">
+                        <div className="flex size-11 items-center justify-center rounded-full bg-destructive/10">
+                          <Trash2 className="size-5 text-destructive" />
+                        </div>
+                        <DialogTitle className="text-xl text-destructive">
+                          Delete account?
+                        </DialogTitle>
+                        <DialogDescription className="text-muted-foreground">
+                          This will permanently remove your account and all
+                          associated data.
+                        </DialogDescription>
+                      </DialogHeader>
                     </div>
 
-                    <div className="space-y-3">
-                      <Label
-                        htmlFor="delete-confirm"
-                        className="text-sm font-medium"
-                      >
-                        Confirmation
-                      </Label>
-                      <Input
-                        id="delete-confirm"
-                        value={deleteConfirmText}
-                        onChange={(e) => setDeleteConfirmText(e.target.value)}
-                        placeholder="confirm delete account"
-                        autoComplete="off"
-                        className="h-11"
-                      />
+                    <div className="space-y-6 px-6 py-5">
+                      <div className="flex gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3.5">
+                        <ShieldAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          This action is permanent and cannot be undone. All your
+                          trips and data will be removed. To continue, type{" "}
+                          <strong className="font-medium text-destructive">
+                            CONFIRM DELETE ACCOUNT
+                          </strong>
+                          .
+                        </p>
+                      </div>
+
+                      <div className="space-y-3">
+                        <Label
+                          htmlFor="delete-confirm"
+                          className="flex items-center gap-2 text-sm font-medium"
+                        >
+                          <KeyRound className="size-4 text-destructive/70" />
+                          Confirmation
+                        </Label>
+                        <Input
+                          id="delete-confirm"
+                          value={deleteConfirmText}
+                          onChange={(e) => setDeleteConfirmText(e.target.value)}
+                          placeholder="confirm delete account"
+                          autoComplete="off"
+                          className="h-11 border-destructive/20 focus-visible:ring-destructive/30"
+                        />
+                      </div>
                     </div>
 
-                    <DialogFooter className="gap-2 sm:gap-3">
+                    <DialogFooter className="gap-2 border-t border-destructive/15 bg-destructive/5 px-6 py-4 sm:gap-3">
                       <Button
                         type="button"
                         variant="outline"
@@ -381,6 +395,7 @@ function SettingsPage() {
                         disabled={!canDeleteAccount}
                         onClick={handleDeleteAccount}
                       >
+                        <Trash2 className="size-4" />
                         Delete account
                       </Button>
                     </DialogFooter>
