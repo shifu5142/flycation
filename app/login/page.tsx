@@ -102,7 +102,7 @@ function LoginPageContent() {
       setLoading(false)
     }
   }
-
+const SUPABASE_URL_callback = process.env.SUPABASE_URL_callback
   const handlegoogleLogin = async () => {
     setLoading(true)
     setStatus(null)
@@ -110,7 +110,7 @@ function LoginPageContent() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${window.location.origin}/auth/callback`,
+          redirectTo: `${SUPABASE_URL_callback}/auth/v1/callback`,
         },
       })
       if (error) {
