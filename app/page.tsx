@@ -6,7 +6,6 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import {
   ArrowRight,
-  CalendarDays,
   Map,
   Plane,
   Sparkles,
@@ -15,12 +14,12 @@ import {
 } from "lucide-react"
 import { Navbar } from "@/components/Navbar"
 import { Footer } from "@/components/Footer"
+import { AirportSearchInput } from "@/components/AirportSearchInput"
+import { FlightDateRangePicker } from "@/components/FlightDateRangePicker"
 import { ExampleTripCard } from "@/components/ExampleTripCard"
 import { useToast } from "@/components/ToastProvider"
 import { mockTrips } from "@/lib/mockTrips"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Card,
   CardContent,
@@ -57,7 +56,7 @@ function LandingPage() {
   const { toast } = useToast()
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
-  const [date, setDate] = useState("")
+  const [departure, setDeparture] = useState("")
 
   const handleGenerate = () => {
     if (!from || !to) {
@@ -67,7 +66,7 @@ function LandingPage() {
     const params = new URLSearchParams({
       from: from.trim(),
       to: to.trim(),
-      ...(date && { date }),
+      ...(departure && { date: departure }),
     })
     router.push(`/preview?${params.toString()}`)
   }
@@ -123,48 +122,41 @@ function LandingPage() {
           </div>
 
           {/* Search card */}
-          <Card className="mx-auto mt-12 max-w-3xl rounded-2xl border-border/60 bg-white shadow-xl sm:mt-14">
+          <Card className="mx-auto mt-12 max-w-3xl overflow-visible rounded-2xl border-border/60 bg-white shadow-xl sm:mt-14">
             <CardHeader className="pb-4">
               <CardTitle className="text-xl">Where to next?</CardTitle>
               <CardDescription>
                 Enter your trip details and generate a personalized plan
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="overflow-visible">
               <div className="grid gap-4 sm:grid-cols-3">
-                <div className="space-y-2">
-                  <Label htmlFor="from">From</Label>
-                  <Input
-                    id="from"
-                    placeholder="New York"
-                    value={from}
-                    onChange={(e) => setFrom(e.target.value)}
-                    className="rounded-lg bg-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="to">To</Label>
-                  <Input
-                    id="to"
-                    placeholder="Paris"
-                    value={to}
-                    onChange={(e) => setTo(e.target.value)}
-                    className="rounded-lg bg-white"
-                  />
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="date">Date</Label>
-                  <div className="relative">
-                    <Input
-                      id="date"
-                      type="date"
-                      value={date}
-                      onChange={(e) => setDate(e.target.value)}
-                      className="rounded-lg bg-white pr-10"
-                    />
-                    <CalendarDays className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                  </div>
-                </div>
+                <AirportSearchInput
+                  id="home-from"
+                  label="From"
+                  value={from}
+                  onChange={setFrom}
+                  placeholder="New York"
+                  size="lg"
+                  className="rounded-lg bg-white"
+                />
+                <AirportSearchInput
+                  id="home-to"
+                  label="To"
+                  value={to}
+                  onChange={setTo}
+                  placeholder="Paris"
+                  size="lg"
+                  className="rounded-lg bg-white"
+                />
+                <FlightDateRangePicker
+                  tripType="oneway"
+                  departure={departure}
+                  returnDate=""
+                  onDepartureChange={setDeparture}
+                  onReturnChange={() => {}}
+                  label="Date"
+                />
               </div>
               <Button
                 className="mt-6 w-full rounded-lg"

@@ -102,7 +102,7 @@ function LoginPageContent() {
       setLoading(false)
     }
   }
-const SUPABASE_URL_callback = process.env.SUPABASE_URL_callback
+const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
   const handlegoogleLogin = async () => {
     setLoading(true)
     setStatus(null)

@@ -26,6 +26,7 @@ interface FlightDateRangePickerProps {
   returnDate: string
   onDepartureChange: (value: string) => void
   onReturnChange: (value: string) => void
+  label?: string
 }
 
 function parseISO(value: string) {
@@ -100,6 +101,7 @@ function FlightDateRangePicker({
   returnDate,
   onDepartureChange,
   onReturnChange,
+  label,
 }: FlightDateRangePickerProps) {
   const panelId = useId()
   const containerRef = useRef<HTMLDivElement>(null)
@@ -391,7 +393,7 @@ function FlightDateRangePicker({
   return (
     <div ref={containerRef} className="space-y-1.5">
       <Label className="text-sm font-medium text-muted-foreground">
-        {tripType === "oneway" ? "Departure" : "Dates"}
+        {label ?? (tripType === "oneway" ? "Departure" : "Dates")}
       </Label>
 
       <button
