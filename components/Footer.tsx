@@ -4,15 +4,30 @@ import { Plane } from "lucide-react"
 const columns = [
   {
     title: "Product",
-    links: ["Features", "Trips", "Pricing", "Mobile app"],
+    links: [
+      { label: "Features", href: "/#features" },
+      { label: "Example trips", href: "/examples" },
+      { label: "Pricing", href: "/pricing" },
+      { label: "Start planning", href: "/start" },
+    ],
   },
   {
     title: "Company",
-    links: ["About", "Careers", "Blog", "Press"],
+    links: [
+      { label: "About", href: "/about" },
+      { label: "Careers", href: "/about" },
+      { label: "Blog", href: "/about" },
+      { label: "Press", href: "/about" },
+    ],
   },
   {
     title: "Support",
-    links: ["Help center", "Contact", "Privacy", "Terms"],
+    links: [
+      { label: "Help center", href: "/about" },
+      { label: "Contact", href: "/about" },
+      { label: "Privacy", href: "/about" },
+      { label: "Terms", href: "/about" },
+    ],
   },
 ]
 
@@ -39,13 +54,13 @@ function Footer() {
               <h3 className="text-sm font-semibold">{col.title}</h3>
               <ul className="mt-4 space-y-3">
                 {col.links.map((link) => (
-                  <li key={link}>
-                    <a
-                      href="#"
+                  <li key={link.label}>
+                    <Link
+                      href={link.href}
                       className="text-sm text-muted-foreground transition-colors hover:text-foreground"
                     >
-                      {link}
-                    </a>
+                      {link.label}
+                    </Link>
                   </li>
                 ))}
               </ul>

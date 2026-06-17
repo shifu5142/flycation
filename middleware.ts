@@ -31,6 +31,13 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl
   const isAuthRoute = pathname === "/login" || pathname === "/register"
+  const isGuestPublicRoute =
+    pathname === "/start" ||
+    pathname === "/preview" ||
+    pathname === "/about" ||
+    pathname === "/pricing" ||
+    pathname === "/examples" ||
+    pathname.startsWith("/examples/")
   const isProtectedRoute =
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/settings") ||
@@ -40,7 +47,7 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith("/ai-trip-planner") ||
     pathname.startsWith("/trip")
 
-  if (!user && isProtectedRoute) {
+  if (!user && isProtectedRoute && !isGuestPublicRoute) {
     const loginUrl = request.nextUrl.clone()
     loginUrl.pathname = "/login"
     return NextResponse.redirect(loginUrl)

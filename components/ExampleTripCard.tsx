@@ -7,11 +7,14 @@ import { Card, CardContent } from "@/components/ui/card"
 
 interface ExampleTripCardProps {
   trip: Trip
+  guest?: boolean
 }
 
-function ExampleTripCard({ trip }: ExampleTripCardProps) {
+function ExampleTripCard({ trip, guest = false }: ExampleTripCardProps) {
+  const href = guest ? `/examples/${trip.id}` : `/trip/${trip.id}`
+
   return (
-    <Link href={`/trip/${trip.id}`} className="group block">
+    <Link href={href} className="group block">
       <Card className="overflow-hidden border-border/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
         <div className="relative h-44 overflow-hidden">
           <img
@@ -19,6 +22,11 @@ function ExampleTripCard({ trip }: ExampleTripCardProps) {
             alt={`${trip.destination}, ${trip.country}`}
             className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
           />
+          {guest && (
+            <Badge className="absolute top-3 left-3 border-0 bg-background/90 text-foreground backdrop-blur-sm">
+              Preview
+            </Badge>
+          )}
           <Badge className="absolute top-3 right-3 gap-1 border-0 bg-background/90 text-foreground backdrop-blur-sm">
             <Star className="size-3 fill-foreground text-foreground" />
             {trip.rating}

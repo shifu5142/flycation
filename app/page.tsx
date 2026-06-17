@@ -3,10 +3,10 @@
 import { useState } from "react"
 import Image from "next/image"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import {
   ArrowRight,
   CalendarDays,
-  Loader2,
   Map,
   Plane,
   Sparkles,
@@ -53,22 +53,23 @@ const features = [
 ]
 
 function LandingPage() {
+  const router = useRouter()
   const { toast } = useToast()
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
   const [date, setDate] = useState("")
-  const [generating, setGenerating] = useState(false)
 
   const handleGenerate = () => {
     if (!from || !to) {
       toast("Please fill in the From and To fields", "info")
       return
     }
-    setGenerating(true)
-    setTimeout(() => {
-      setGenerating(false)
-      toast("Trip generated! Your itinerary is ready.")
-    }, 2500)
+    const params = new URLSearchParams({
+      from: from.trim(),
+      to: to.trim(),
+      ...(date && { date }),
+    })
+    router.push(`/preview?${params.toString()}`)
   }
 
   return (
@@ -116,7 +117,7 @@ function LandingPage() {
                 asChild
                 className="rounded-lg border-border/80 bg-white/90 px-6 backdrop-blur-sm"
               >
-                <Link href="/dashboard">View dashboard</Link>
+                <Link href="/login">View dashboard</Link>
               </Button>
             </div>
           </div>
@@ -169,19 +170,11 @@ function LandingPage() {
                 className="mt-6 w-full rounded-lg"
                 size="lg"
                 onClick={handleGenerate}
-                disabled={generating}
               >
-                {generating ? (
-                  <>
-                    <Loader2 className="size-4 animate-spin" />
-                    AI generating trip…
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="size-4" />
-                    Generate trip
-                  </>
-                )}
+                <>
+                  <Sparkles className="size-4" />
+                  Generate trip
+                </>
               </Button>
             </CardContent>
           </Card>
@@ -236,7 +229,7 @@ function LandingPage() {
               </p>
             </div>
             <Link
-              href="/dashboard"
+              href="/examples"
               className="inline-flex items-center gap-1 text-sm font-medium text-foreground transition-colors hover:text-muted-foreground"
             >
               See all trips
@@ -245,7 +238,7 @@ function LandingPage() {
           </div>
           <div className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {mockTrips.map((trip) => (
-              <ExampleTripCard key={trip.id} trip={trip} />
+              <ExampleTripCard key={trip.id} trip={trip} guest />
             ))}
           </div>
         </div>

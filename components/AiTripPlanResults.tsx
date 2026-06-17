@@ -173,7 +173,13 @@ function TipsList({
   )
 }
 
-export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
+export function AiTripPlanResults({
+  plan,
+  readOnly = false,
+}: {
+  plan: AiGeneratedTripPlan
+  readOnly?: boolean
+}) {
   const { hero, budgetBreakdown } = plan
   const [heroImageUrl, setHeroImageUrl] = useState(hero.image)
   const budgetTotal = parsePriceAmount(budgetBreakdown.total)
@@ -693,7 +699,7 @@ export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
       <TipsList title="Local tips" icon={MapPin} tips={plan.localTips} />
       <TipsList title="Safety tips" icon={Shield} tips={plan.safetyTips} />
 
-      {/* Actions */}
+      {!readOnly && (
       <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-sm">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
@@ -718,6 +724,7 @@ export function AiTripPlanResults({ plan }: { plan: AiGeneratedTripPlan }) {
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   )
 }
