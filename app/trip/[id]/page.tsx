@@ -3,6 +3,7 @@ import { notFound } from "next/navigation"
 import { ArrowLeft, Calendar, DollarSign, MapPin, Star } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { AppImage } from "@/components/AppImage"
 import { FlightCard } from "@/components/FlightCard"
 import { ItineraryDay } from "@/components/ItineraryDay"
 import { getTripById } from "@/lib/mockTrips"
@@ -44,7 +45,7 @@ async function TripPage({ params }: TripPageProps) {
 
         {/* Trip header */}
         <div className="relative overflow-hidden rounded-xl">
-          <img
+          <AppImage
             src={trip.image}
             alt={trip.destination}
             className="h-56 w-full object-cover sm:h-72"
@@ -116,10 +117,11 @@ async function TripPage({ params }: TripPageProps) {
             {trip.hotels.map((hotel) => (
               <Card key={hotel.name} className="overflow-hidden transition-all hover:shadow-md">
                 <div className="flex">
-                  <img
+                  <AppImage
                     src={hotel.image}
                     alt={hotel.name}
-                    className="h-32 w-32 shrink-0 object-cover"
+                    wrapperClassName="h-32 w-32 shrink-0"
+                    className="size-full object-cover"
                   />
                   <div className="flex flex-1 flex-col justify-between p-4">
                     <div>

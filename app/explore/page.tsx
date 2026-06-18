@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { AppImage } from "@/components/AppImage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -48,7 +49,7 @@ function DestinationCard({
       )}
     >
       <div className={cn("relative overflow-hidden", large ? "h-56" : "h-44")}>
-        <img
+        <AppImage
           src={destination.image}
           alt={destination.name}
           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"

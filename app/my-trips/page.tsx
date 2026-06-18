@@ -15,6 +15,8 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase/client"
+import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
+import { AppImage } from "@/components/AppImage"
 
 type TripPlan = {
   id: string
@@ -26,7 +28,7 @@ type TripPlan = {
 }
 
 function toTripPlan(row: Record<string, unknown>): TripPlan {
-  return {
+  const tripPlan = {
     id: String(row.id ?? ""),
     destination: String(row.destination ?? ""),
     country: String(row.country ?? ""),
@@ -34,6 +36,7 @@ function toTripPlan(row: Record<string, unknown>): TripPlan {
     summary: String(row.summary ?? ""),
     duration: String(row.duration ?? ""),
   }
+  return tripPlan
 }
 
 function formatLabel(value: string) {
@@ -49,7 +52,7 @@ function TripPlanCard({ trip }: { trip: TripPlan }) {
   return (
     <Card className="group flex flex-col overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
       <div className="relative h-40 overflow-hidden">
-        <img
+        <AppImage
           src={imageSrc}
           alt={trip.destination}
           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
@@ -112,9 +115,25 @@ function MyTripsPage() {
         console.error(error)
         return
       }
-      setTrips(
-        (data ?? []).map((row: Record<string, unknown>) => toTripPlan(row))
+
+      const tripPlans = (data ?? []).map((row: Record<string, unknown>) =>
+        toTripPlan(row)
       )
+
+      const tripsWithImages = await Promise.all(
+        tripPlans.map(async (trip: TripPlan) => {
+          const imageUrl = await fetchCountryImageUrl(
+            trip.country,
+            trip.destination
+          )
+          return {
+            ...trip,
+            image: imageUrl || trip.image,
+          }
+        })
+      )
+
+      setTrips(tripsWithImages)
     }
     fetchTrips()
   }, [])

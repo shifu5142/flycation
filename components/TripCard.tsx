@@ -2,6 +2,7 @@ import Link from "next/link"
 import { Calendar, DollarSign, MapPin } from "lucide-react"
 
 import type { Trip } from "@/lib/mockTrips"
+import { AppImage } from "@/components/AppImage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,7 +35,7 @@ function TripCard({
   return (
     <Card className="group overflow-hidden transition-all duration-300 hover:shadow-md">
       <div className={`relative overflow-hidden ${imageHeight}`}>
-        <img
+        <AppImage
           src={trip.image}
           alt={trip.destination}
           className="size-full object-cover transition-transform duration-300 group-hover:scale-105"

@@ -14,6 +14,7 @@ import {
 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { AppImage } from "@/components/AppImage"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
 import { FlightDateRangePicker } from "@/components/FlightDateRangePicker"
 import { SavedTripCard, type SavedTrip } from "@/components/SavedTripCard"
@@ -212,10 +213,11 @@ function DashboardPage() {
       <div className="-m-4 flex flex-col sm:-m-6 lg:-m-8">
         {/* Hero: sky background with header + search */}
         <section className="relative h-[70vh] w-full shrink-0 overflow-hidden">
-          <img
+          <AppImage
             src="/backround-dash.jpg"
             alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover object-[center_40%]"
+            fill
+            className="pointer-events-none object-cover object-[center_40%]"
             aria-hidden
           />
           <div

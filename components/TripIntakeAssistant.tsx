@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useRef, useState, type Dispatch, type SetStateAction } from "react"
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState, type Dispatch, type SetStateAction } from "react"
 import { useLocale, useTranslations } from "next-intl"
 import {
   Bot,
@@ -57,6 +57,10 @@ type TripIntakeAssistantProps = {
   generateError?: boolean
   onGenerate: () => void
   onReset?: () => void
+}
+
+export type TripIntakeAssistantHandle = {
+  startOver: () => void
 }
 
 function SummaryRow({
@@ -321,14 +325,20 @@ function ChatBubble({ message }: { message: ChatMessage }) {
   )
 }
 
-export function TripIntakeAssistant({
-  tripAnswers,
-  setTripAnswers,
-  generating,
-  generateError,
-  onGenerate,
-  onReset,
-}: TripIntakeAssistantProps) {
+export const TripIntakeAssistant = forwardRef<
+  TripIntakeAssistantHandle,
+  TripIntakeAssistantProps
+>(function TripIntakeAssistant(
+  {
+    tripAnswers,
+    setTripAnswers,
+    generating,
+    generateError,
+    onGenerate,
+    onReset,
+  },
+  ref
+) {
   const t = useTranslations("aiTripPlanner")
   const locale = useLocale()
 
@@ -575,7 +585,7 @@ export function TripIntakeAssistant({
     }))
   }
 
-  const handleReset = () => {
+  const handleReset = useCallback(() => {
     if (askTimeoutRef.current) {
       clearTimeout(askTimeoutRef.current)
       askTimeoutRef.current = null
@@ -593,7 +603,9 @@ export function TripIntakeAssistant({
     setTravelersStep("type")
     setSelectedInterests([])
     onReset?.()
-  }
+  }, [onReset, setTripAnswers, t])
+
+  useImperativeHandle(ref, () => ({ startOver: handleReset }), [handleReset])
 
   const showTextInput =
     currentField &&
@@ -822,4 +834,4 @@ export function TripIntakeAssistant({
       />
     </div>
   )
-}
+})

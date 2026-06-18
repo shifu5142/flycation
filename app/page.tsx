@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import Image from "next/image"
 import { useTranslations } from "next-intl"
 import {
   ArrowRight,
@@ -17,6 +16,7 @@ import { Footer } from "@/components/Footer"
 import { AirportSearchInput } from "@/components/AirportSearchInput"
 import { FlightDateRangePicker } from "@/components/FlightDateRangePicker"
 import { ExampleTripCard } from "@/components/ExampleTripCard"
+import { AppImage } from "@/components/AppImage"
 import { useToast } from "@/components/ToastProvider"
 import { Link, useRouter } from "@/i18n/navigation"
 import { mockTrips } from "@/lib/mockTrips"
@@ -65,13 +65,13 @@ function LandingPage() {
 
       <section className="relative overflow-hidden">
         <div className="absolute inset-0 min-h-full">
-          <Image
+          <AppImage
             src={HERO_IMAGE}
             alt={t("heroImageAlt")}
             fill
-            priority
+            fetchPriority="high"
+            loading="eager"
             className="object-cover object-center"
-            sizes="100vw"
           />
           <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-white/90" />
         </div>

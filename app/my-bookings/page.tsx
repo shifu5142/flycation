@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { AppImage } from "@/components/AppImage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -89,7 +90,7 @@ function BookingCard({ booking }: { booking: Booking }) {
     <Card className="overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:shadow-md">
       <div className="flex flex-col sm:flex-row">
         <div className="relative h-36 w-full shrink-0 sm:h-auto sm:w-44">
-          <img
+          <AppImage
             src={booking.image}
             alt={booking.title}
             className="size-full object-cover"

@@ -1,6 +1,5 @@
 "use client"
 
-import Image from "next/image"
 import { useTranslations } from "next-intl"
 import {
   ArrowLeft,
@@ -11,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
+import { AppImage } from "@/components/AppImage"
 import { Link } from "@/i18n/navigation"
 import { cn } from "@/lib/utils"
 
@@ -32,13 +32,13 @@ function AuthLayout({ children, className }: AuthLayoutProps) {
   return (
     <div className="relative flex min-h-screen">
       <div className="relative hidden w-[45%] overflow-hidden lg:flex lg:flex-col lg:justify-between">
-        <Image
+        <AppImage
           src="/airplane-view.jpg"
           alt=""
           fill
-          sizes="(max-width: 1024px) 0vw, 45vw"
+          fetchPriority="high"
+          loading="eager"
           className="object-cover"
-          priority
         />
         <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/30 to-transparent" />
 

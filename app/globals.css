@@ -199,3 +199,39 @@
     @apply cursor-not-allowed;
   }
 }
+
+@keyframes image-shimmer {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+.image-skeleton {
+  overflow: hidden;
+}
+
+.image-skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.5) 50%,
+    transparent 100%
+  );
+  filter: blur(8px);
+  animation: image-shimmer 1.6s ease-in-out infinite;
+}
+
+.dark .image-skeleton::after {
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+}

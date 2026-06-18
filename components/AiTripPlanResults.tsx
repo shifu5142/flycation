@@ -47,6 +47,7 @@ import {
   type AiGeneratedTripPlan,
 } from "@/lib/aiGeneratedTripPlanTypes"
 import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
+import { AppImage } from "@/components/AppImage"
 
 function ActivityTypeIcon({
   type,
@@ -179,10 +180,12 @@ export function AiTripPlanResults({
   plan,
   readOnly = false,
   handleSave,
+  onStartOver,
 }: {
   plan: AiGeneratedTripPlan
   readOnly?: boolean
   handleSave?: () => void | Promise<void>
+  onStartOver?: () => void
 }) {
   const [heroImageUrl, setHeroImageUrl] = useState(plan.hero.image)
   const budgetTotal = parsePriceAmount(plan.budgetBreakdown.total)
@@ -219,10 +222,11 @@ export function AiTripPlanResults({
       <Card className="overflow-hidden rounded-2xl border-border/60 shadow-md">
         <div className="grid md:grid-cols-[1.2fr_1fr]">
           <div className="relative h-48 w-full shrink-0 overflow-hidden md:h-[220px]">
-            <img
+            <AppImage
               src={heroImageUrl}
               alt={plan.hero.destination}
-              className="absolute inset-0 size-full max-h-full max-w-full object-cover object-center"
+              fill
+              className="max-h-full max-w-full object-cover object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r" />
           </div>
@@ -702,7 +706,7 @@ export function AiTripPlanResults({
       <TipsList title="Local tips" icon={MapPin} tips={plan.localTips} />
       <TipsList title="Safety tips" icon={Shield} tips={plan.safetyTips} />
 
-      {!readOnly && handleSave && (
+      {!readOnly && (handleSave || onStartOver) && (
       <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-sm">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
@@ -712,14 +716,18 @@ export function AiTripPlanResults({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <Button variant="outline" className="rounded-xl">
-              <RefreshCw className="size-4" />
-              Regenerate plan
-            </Button>
-            <Button variant="outline" className="rounded-xl">
-              <Download className="size-4" />
-              Export PDF
-            </Button>
+            {onStartOver && (
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-xl"
+                onClick={onStartOver}
+              >
+                <RefreshCw className="size-4" />
+                Regenerate plan
+              </Button>
+            )}
+            {handleSave && (
             <Button
               onClick={() => void handleSave()}
               className="rounded-xl shadow-md shadow-primary/20"
@@ -727,6 +735,7 @@ export function AiTripPlanResults({
               <Save className="size-4" />
               Save trip
             </Button>
+            )}
           </div>
         </CardContent>
       </Card>

@@ -10,6 +10,7 @@ import {
 } from "lucide-react"
 
 import { FlightCard } from "@/components/FlightCard"
+import { AppImage } from "@/components/AppImage"
 import { GuestLayout } from "@/components/GuestLayout"
 import { ItineraryDay } from "@/components/ItineraryDay"
 import { getFlightsByTripId } from "@/lib/mockFlights"
@@ -68,7 +69,7 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
         </Card>
 
         <div className="relative overflow-hidden rounded-xl">
-          <img
+          <AppImage
             src={trip.image}
             alt={trip.destination}
             className="h-56 w-full object-cover sm:h-72"
@@ -137,10 +138,11 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
             {trip.hotels.map((hotel) => (
               <Card key={hotel.name} className="overflow-hidden">
                 <div className="flex">
-                  <img
+                  <AppImage
                     src={hotel.image}
                     alt={hotel.name}
-                    className="h-32 w-32 shrink-0 object-cover"
+                    wrapperClassName="h-32 w-32 shrink-0"
+                    className="size-full object-cover"
                   />
                   <div className="flex flex-1 flex-col justify-between p-4">
                     <div>

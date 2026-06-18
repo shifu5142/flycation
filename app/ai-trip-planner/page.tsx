@@ -2,12 +2,16 @@
 
 import { useRef, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { ChevronDown, Sparkles } from "lucide-react"
+import { ChevronDown, Save, Sparkles } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
 import { DashboardShell } from "@/components/Sidebar"
-import { TripIntakeAssistant } from "@/components/TripIntakeAssistant"
+import {
+  TripIntakeAssistant,
+  type TripIntakeAssistantHandle,
+} from "@/components/TripIntakeAssistant"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import type { AiGeneratedTripPlan } from "@/lib/aiGeneratedTripPlanTypes"
 import {
@@ -31,6 +35,7 @@ function AiTripPlannerPage() {
   const [generatedPlan, setGeneratedPlan] =
     useState<AiGeneratedTripPlan | null>(null)
   const planRef = useRef<HTMLDivElement>(null)
+  const intakeRef = useRef<TripIntakeAssistantHandle>(null)
 
   const handleGenerate = async () => {
     if (!isIntakeComplete(tripAnswers)) return
@@ -96,11 +101,14 @@ function AiTripPlannerPage() {
     }
   }
 
-  const handleReset = () => {
-    setTripAnswers(INITIAL_TRIP_INTAKE)
+  const handlePlanReset = () => {
     setGenerateError(false)
     setShowPlan(false)
     setGeneratedPlan(null)
+  }
+
+  const handleStartOver = () => {
+    intakeRef.current?.startOver()
   }
 
   return (
@@ -123,12 +131,13 @@ function AiTripPlannerPage() {
         </section>
 
         <TripIntakeAssistant
+          ref={intakeRef}
           tripAnswers={tripAnswers}
           setTripAnswers={setTripAnswers}
           generating={generating}
           generateError={generateError}
           onGenerate={handleGenerate}
-          onReset={handleReset}
+          onReset={handlePlanReset}
         />
 
         {showPlan && generatedPlan && !generating && (
@@ -150,15 +159,28 @@ function AiTripPlannerPage() {
 
         {showPlan && generatedPlan && !generating && (
           <div ref={planRef} className="space-y-6 scroll-mt-6">
-            <div className="flex items-center gap-4">
-              <Separator className="flex-1" />
-              <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-                <Sparkles className="size-4 text-primary" />
-                {t("generatedPlan")}
-              </span>
-              <Separator className="flex-1" />
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex min-w-0 flex-1 items-center gap-4">
+                <Separator className="flex-1" />
+                <span className="flex shrink-0 items-center gap-2 text-sm font-medium text-muted-foreground">
+                  <Sparkles className="size-4 text-primary" />
+                  {t("generatedPlan")}
+                </span>
+                <Separator className="flex-1" />
+              </div>
+              <Button
+                onClick={() => void handleSaveTripPlan()}
+                className="shrink-0 rounded-xl shadow-md shadow-primary/20"
+              >
+                <Save className="size-4" />
+                Save trip
+              </Button>
             </div>
-            <AiTripPlanResults plan={generatedPlan} handleSave={handleSaveTripPlan} />
+            <AiTripPlanResults
+              plan={generatedPlan}
+              handleSave={handleSaveTripPlan}
+              onStartOver={handleStartOver}
+            />
           </div>
         )}
       </div>

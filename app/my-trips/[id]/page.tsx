@@ -2,14 +2,22 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { useParams } from "next/navigation"
-import { ArrowLeft, CalendarDays, MapPin, Sparkles } from "lucide-react"
+import { useParams, useRouter } from "next/navigation"
+import { ArrowLeft, CalendarDays, MapPin, Sparkles, Trash2 } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
 import { DashboardShell } from "@/components/Sidebar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { Separator } from "@/components/ui/separator"
 import type { AiGeneratedTripPlan } from "@/lib/aiGeneratedTripPlanTypes"
 import { supabase } from "@/app/services/supabase/client"
@@ -18,6 +26,7 @@ import {
   toAiGeneratedTripPlan,
   type TripsPlanRow,
 } from "@/lib/tripsPlan"
+import { useToast } from "@/components/ToastProvider"
 
 function TripPlanSkeleton() {
   return (
@@ -40,7 +49,24 @@ function MyTripPlanPage() {
   const [loading, setLoading] = useState(true)
   const [tripPlan, setTripPlan] = useState<TripsPlanRow | null>(null)
   const [plan, setPlan] = useState<AiGeneratedTripPlan | null>(null)
-
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const router = useRouter()
+  const { toast } = useToast()
+    const handleDeleteTripPlan = async () => {
+    const { error } = await supabase
+      .from("trips_plan")
+      .delete()
+      .eq("id", tripId)
+      if (error) {
+        toast("Failed to delete trip plan", "info")
+        return
+      }
+      setTimeout(() => {
+        toast("Trip plan deleted", "success")
+        router.push("/my-trips")
+      }, 1000)
+    
+  }
   useEffect(() => {
     if (!tripId) return
 
@@ -146,10 +172,71 @@ function MyTripPlanPage() {
             <Separator />
 
             <AiTripPlanResults plan={plan} readOnly />
+
+            <div className="flex justify-end">
+              <Button
+                variant="destructive"
+                className="rounded-xl transition-all duration-300 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-destructive/30 hover:brightness-110 active:translate-y-0 active:shadow-md"
+                onClick={() => setDeleteConfirmOpen(true)}
+              >
+                <Trash2 className="size-4" />
+                Delete trip plan
+              </Button>
+            </div>
           </>
         )}
       </div>
+
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent
+          overlayClassName="bg-black/60 backdrop-blur-sm"
+          className="gap-0 overflow-hidden border-destructive/20 p-0 sm:max-w-lg"
+        >
+          <div className="border-b border-destructive/15 bg-destructive/5 px-6 py-5">
+            <DialogHeader className="space-y-3 text-left">
+              <div className="flex size-12 items-center justify-center rounded-full bg-destructive/15">
+                <Trash2 className="size-6 text-destructive" />
+              </div>
+              <DialogTitle className="text-xl font-bold tracking-tight">
+                Delete trip plan?
+              </DialogTitle>
+            </DialogHeader>
+          </div>
+
+          <div className="px-6 py-6">
+            <DialogDescription asChild>
+              <p className="text-base leading-relaxed text-foreground">
+                Delete this trip plan permanently? You won&apos;t be able to
+                recover it after this.
+              </p>
+            </DialogDescription>
+          </div>
+
+          <DialogFooter className="gap-3 border-t border-border/60 bg-muted/40 px-6 py-4 sm:justify-end">
+            <Button
+              type="button"
+              variant="outline"
+              className="min-w-24 rounded-xl"
+              onClick={() => setDeleteConfirmOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              className="min-w-24 rounded-xl transition-all duration-300 hover:brightness-110"
+              onClick={() => {
+                setDeleteConfirmOpen(false)
+                void handleDeleteTripPlan()
+              }}
+            >
+              Confirm
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardShell>
+    
   )
 }
 

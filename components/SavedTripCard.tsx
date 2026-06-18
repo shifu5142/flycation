@@ -13,6 +13,7 @@ import {
 } from "lucide-react"
 
 import { cn } from "@/lib/utils"
+import { AppImage } from "@/components/AppImage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -66,7 +67,7 @@ function SavedTripCard({
       onClick={() => setOpen((prev) => !prev)}
     >
       <div className="relative h-36 overflow-hidden">
-        <img
+        <AppImage
           src={imageSrc}
           alt={`${trip.from} to ${trip.to}`}
           className="size-full object-cover transition-transform duration-500 group-hover:scale-105"

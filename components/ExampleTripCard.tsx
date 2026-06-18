@@ -5,6 +5,7 @@ import { Link } from "@/i18n/navigation"
 import { MapPin, Star } from "lucide-react"
 
 import type { Trip } from "@/lib/mockTrips"
+import { AppImage } from "@/components/AppImage"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 
@@ -21,7 +22,7 @@ function ExampleTripCard({ trip, guest = false }: ExampleTripCardProps) {
     <Link href={href} className="group block">
       <Card className="overflow-hidden border-border/60 transition-all duration-300 hover:-translate-y-1 hover:shadow-lg">
         <div className="relative h-44 overflow-hidden">
-          <img
+          <AppImage
             src={trip.image}
             alt={`${trip.destination}, ${trip.country}`}
             className="size-full object-cover transition-transform duration-300 group-hover:scale-105"
