@@ -12,6 +12,8 @@ import {
   Sparkles,
 } from "lucide-react"
 
+import { AirportSearchInput } from "@/components/AirportSearchInput"
+import { FlightDateRangePicker } from "@/components/FlightDateRangePicker"
 import { GuestLayout } from "@/components/GuestLayout"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -22,10 +24,14 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
+import { findCountryLocation } from "@/lib/countries"
+import { formatFlightDate } from "@/components/FlightDateRangePicker"
 
 const steps = ["From", "To", "Date", "Preview"] as const
+
+function formatLocation(value: string) {
+  return findCountryLocation(value)?.country ?? value
+}
 
 function StartPlanningPage() {
   const router = useRouter()
@@ -90,7 +96,7 @@ function StartPlanningPage() {
           ))}
         </div>
 
-        <Card className="rounded-2xl border-border/60 shadow-lg">
+        <Card className="overflow-visible rounded-2xl border-border/60 shadow-lg">
           <CardHeader>
             <CardTitle>{steps[step]}</CardTitle>
             <CardDescription>
@@ -100,47 +106,40 @@ function StartPlanningPage() {
               {step === 3 && "Ready to see your trip preview"}
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 overflow-visible">
             {step === 0 && (
-              <div className="space-y-2">
-                <Label htmlFor="start-from">From</Label>
-                <Input
-                  id="start-from"
-                  placeholder="New York"
-                  value={from}
-                  onChange={(e) => setFrom(e.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
+              <AirportSearchInput
+                id="start-from"
+                label="From"
+                value={from}
+                onChange={setFrom}
+                placeholder="Select origin"
+                size="lg"
+                className="rounded-lg"
+              />
             )}
 
             {step === 1 && (
-              <div className="space-y-2">
-                <Label htmlFor="start-to">To</Label>
-                <Input
-                  id="start-to"
-                  placeholder="Paris"
-                  value={to}
-                  onChange={(e) => setTo(e.target.value)}
-                  className="rounded-lg"
-                />
-              </div>
+              <AirportSearchInput
+                id="start-to"
+                label="To"
+                value={to}
+                onChange={setTo}
+                placeholder="Select destination"
+                size="lg"
+                className="rounded-lg"
+              />
             )}
 
             {step === 2 && (
-              <div className="space-y-2">
-                <Label htmlFor="start-date">Date</Label>
-                <div className="relative">
-                  <Input
-                    id="start-date"
-                    type="date"
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="rounded-lg pr-10"
-                  />
-                  <CalendarDays className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-muted-foreground" />
-                </div>
-              </div>
+              <FlightDateRangePicker
+                tripType="oneway"
+                departure={date}
+                returnDate=""
+                onDepartureChange={setDate}
+                onReturnChange={() => {}}
+                label="Date"
+              />
             )}
 
             {step === 3 && (
@@ -148,12 +147,13 @@ function StartPlanningPage() {
                 <p className="flex items-center gap-2 text-sm">
                   <MapPin className="size-4 text-primary" />
                   <span>
-                    <strong>{from}</strong> → <strong>{to}</strong>
+                    <strong>{formatLocation(from)}</strong> →{" "}
+                    <strong>{formatLocation(to)}</strong>
                   </span>
                 </p>
                 <p className="flex items-center gap-2 text-sm text-muted-foreground">
                   <CalendarDays className="size-4" />
-                  {date}
+                  {formatFlightDate(date)}
                 </p>
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   You&apos;ll see a sample AI itinerary preview. Create a free
@@ -206,7 +206,9 @@ function StartPlanningPage() {
 
             {step === 3 && (
               <Button variant="link" asChild className="w-full">
-                <Link href={`/register?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}`}>
+                <Link
+                  href={`/register?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`}
+                >
                   Sign up to generate full itinerary
                 </Link>
               </Button>

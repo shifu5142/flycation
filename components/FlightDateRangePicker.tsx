@@ -434,4 +434,4 @@ function FlightDateRangePicker({
   )
 }
 
-export { FlightDateRangePicker }
+export { FlightDateRangePicker, formatShort as formatFlightDate }

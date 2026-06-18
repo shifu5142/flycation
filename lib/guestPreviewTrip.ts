@@ -1,4 +1,17 @@
 import type { AiGeneratedTripPlan } from "@/lib/aiGeneratedTripPlanTypes"
+import { findCountryLocation } from "@/lib/countries"
+import { formatFlightDate } from "@/components/FlightDateRangePicker"
+
+function tripDayCount(departure: string, returnDate: string): number | null {
+  if (!departure || !returnDate) return null
+
+  const start = new Date(`${departure}T12:00:00`)
+  const end = new Date(`${returnDate}T12:00:00`)
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
+
+  const diff = Math.round((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24))
+  return diff > 0 ? diff + 1 : null
+}
 
 export const guestSamplePreview: AiGeneratedTripPlan = {
   hero: {
@@ -145,26 +158,45 @@ export function buildGuestPreviewPlan(input: {
   from?: string
   to?: string
   date?: string
+  departure?: string
+  returnDate?: string
 }): AiGeneratedTripPlan {
   const destination = input.to?.trim() || guestSamplePreview.hero.destination
   const from = input.from?.trim()
+  const departure = input.departure?.trim() || input.date?.trim() || ""
+  const returnDate = input.returnDate?.trim() || ""
+  const country =
+    findCountryLocation(destination)?.country ?? guestSamplePreview.hero.country
+  const fromCountry = from
+    ? findCountryLocation(from)?.country ?? from
+    : null
+  const days = tripDayCount(departure, returnDate)
+
+  const durationLabel =
+    days != null
+      ? `${days} day${days === 1 ? "" : "s"}`
+      : departure && returnDate
+        ? `${formatFlightDate(departure)} – ${formatFlightDate(returnDate)}`
+        : departure
+          ? `From ${formatFlightDate(departure)}`
+          : guestSamplePreview.hero.duration
 
   return {
     ...guestSamplePreview,
     hero: {
       ...guestSamplePreview.hero,
       destination,
+      country,
+      image: "/global2.png",
       summary: from
-        ? `Preview itinerary from ${from} to ${destination}. Sign up to generate your personalized full plan with flights, hotels, and day-by-day activities.`
-        : guestSamplePreview.hero.summary,
-      duration: input.date
-        ? `Trip starting ${input.date}`
-        : guestSamplePreview.hero.duration,
+        ? `Sample trip from ${fromCountry ?? from} to ${country}.`
+        : `Sample AI itinerary for ${destination}.`,
+      duration: durationLabel,
     },
     flights: guestSamplePreview.flights.map((flight) => ({
       ...flight,
-      departureAirport: from ? `${from} (your city)` : flight.departureAirport,
-      arrivalAirport: `${destination} (destination)`,
+      departureAirport: fromCountry ?? flight.departureAirport,
+      arrivalAirport: country,
     })),
   }
 }

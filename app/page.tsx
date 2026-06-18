@@ -28,8 +28,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 const HERO_IMAGE = "/hero-travel.png"
+
+type TripType = "oneway" | "roundtrip"
 
 const featureConfig = [
   { key: "ai" as const, icon: Wand2 },
@@ -42,9 +45,12 @@ function LandingPage() {
   const { toast } = useToast()
   const t = useTranslations("home")
   const tCommon = useTranslations("common")
+  const tDashboard = useTranslations("dashboard")
+  const [tripType, setTripType] = useState<TripType>("roundtrip")
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
   const [departure, setDeparture] = useState("")
+  const [returnDate, setReturnDate] = useState("")
 
   const handleGenerate = () => {
     if (!from || !to) {
@@ -54,7 +60,8 @@ function LandingPage() {
     const params = new URLSearchParams({
       from: from.trim(),
       to: to.trim(),
-      ...(departure && { date: departure }),
+      ...(departure && { departure }),
+      ...(returnDate && { returnDate }),
     })
     router.push(`/preview?${params.toString()}`)
   }
@@ -113,17 +120,38 @@ function LandingPage() {
 
           <Card className="mx-auto mt-12 max-w-3xl overflow-visible rounded-2xl border-border/60 bg-white shadow-xl sm:mt-14">
             <CardHeader className="pb-4">
-              <CardTitle className="text-xl">{t("searchTitle")}</CardTitle>
-              <CardDescription>{t("searchDescription")}</CardDescription>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <CardTitle className="text-xl">{t("searchTitle")}</CardTitle>
+                  <CardDescription>{t("searchDescription")}</CardDescription>
+                </div>
+                <Tabs
+                  value={tripType}
+                  onValueChange={(value) => {
+                    const next = value as TripType
+                    setTripType(next)
+                    if (next === "oneway") setReturnDate("")
+                  }}
+                >
+                  <TabsList className="h-10 rounded-xl bg-muted/70 p-1">
+                    <TabsTrigger value="oneway" className="rounded-lg px-3 text-sm">
+                      {tDashboard("direct")}
+                    </TabsTrigger>
+                    <TabsTrigger value="roundtrip" className="rounded-lg px-3 text-sm">
+                      {tDashboard("roundTrip")}
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </CardHeader>
             <CardContent className="overflow-visible">
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 <AirportSearchInput
                   id="home-from"
                   label={tCommon("from")}
                   value={from}
                   onChange={setFrom}
-                  placeholder="New York"
+                  placeholder="Select origin"
                   size="lg"
                   className="rounded-lg bg-white"
                 />
@@ -132,18 +160,20 @@ function LandingPage() {
                   label={tCommon("to")}
                   value={to}
                   onChange={setTo}
-                  placeholder="Paris"
+                  placeholder="Select destination"
                   size="lg"
                   className="rounded-lg bg-white"
                 />
-                <FlightDateRangePicker
-                  tripType="oneway"
-                  departure={departure}
-                  returnDate=""
-                  onDepartureChange={setDeparture}
-                  onReturnChange={() => {}}
-                  label={tCommon("date")}
-                />
+                <div className={tripType === "roundtrip" ? "sm:col-span-2 lg:col-span-1" : ""}>
+                  <FlightDateRangePicker
+                    tripType={tripType}
+                    departure={departure}
+                    returnDate={returnDate}
+                    onDepartureChange={setDeparture}
+                    onReturnChange={setReturnDate}
+                    label={tCommon("date")}
+                  />
+                </div>
               </div>
               <Button
                 className="mt-6 w-full rounded-lg"

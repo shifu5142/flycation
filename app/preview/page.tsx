@@ -3,7 +3,7 @@
 import { Suspense, useMemo } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { ArrowLeft, Eye, Lock, Sparkles } from "lucide-react"
+import { ArrowLeft, CalendarDays, Eye, Lock, MapPin, Sparkles } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
 import { GuestLayout } from "@/components/GuestLayout"
@@ -14,23 +14,41 @@ import {
   CardContent,
 } from "@/components/ui/card"
 import { buildGuestPreviewPlan } from "@/lib/guestPreviewTrip"
+import { findCountryLocation } from "@/lib/countries"
+import { formatFlightDate } from "@/components/FlightDateRangePicker"
 
 function PreviewContent() {
   const searchParams = useSearchParams()
   const from = searchParams.get("from") ?? ""
   const to = searchParams.get("to") ?? ""
-  const date = searchParams.get("date") ?? ""
+  const departure =
+    searchParams.get("departure") ?? searchParams.get("date") ?? ""
+  const returnDate = searchParams.get("returnDate") ?? ""
 
   const plan = useMemo(
-    () => buildGuestPreviewPlan({ from, to, date }),
-    [from, to, date]
+    () => buildGuestPreviewPlan({ from, to, departure, returnDate }),
+    [from, to, departure, returnDate]
   )
 
   const registerHref = `/register?${new URLSearchParams({
     ...(from && { from }),
     ...(to && { to }),
-    ...(date && { date }),
+    ...(departure && { departure }),
+    ...(returnDate && { returnDate }),
   }).toString()}`
+
+  const loginHref = `/login?${new URLSearchParams({
+    ...(from && { from }),
+    ...(to && { to }),
+    ...(departure && { departure }),
+    ...(returnDate && { returnDate }),
+  }).toString()}`
+
+  const formatLocation = (value: string) =>
+    findCountryLocation(value)?.country ?? value
+
+  const displayDeparture = departure ? formatFlightDate(departure) : "Not set"
+  const displayReturn = returnDate ? formatFlightDate(returnDate) : "—"
 
   return (
     <div className="mx-auto max-w-6xl space-y-8 px-4 py-10 sm:px-6 lg:px-8">
@@ -42,31 +60,74 @@ function PreviewContent() {
       </Button>
 
       <Card className="rounded-2xl border-primary/20 bg-primary/5">
-        <CardContent className="flex flex-col gap-4 p-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-2">
-            <Badge variant="secondary" className="rounded-full">
-              <Eye className="size-3" />
-              Preview mode
-            </Badge>
-            <p className="font-semibold">Sample AI-generated trip preview</p>
-            <p className="text-sm text-muted-foreground">
-              This is a read-only demo. Sign up to save trips and unlock the full
-              AI planner.
+        <CardContent className="space-y-5 p-5">
+          <div className="flex flex-col gap-3 border-b border-primary/15 pb-5 sm:flex-row sm:items-center sm:justify-between">
+            <p className="font-semibold tracking-tight">
+              This is a demo page for guest users
             </p>
+            <Button asChild className="shrink-0 rounded-lg shadow-sm">
+              <Link href={loginHref}>Log in to create your real trip</Link>
+            </Button>
           </div>
-          <Button asChild className="shrink-0 rounded-lg">
-            <Link href={registerHref}>
-              <Sparkles className="size-4" />
-              Sign up for full itinerary
-            </Link>
-          </Button>
+
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <MapPin className="size-3.5" />
+                From
+              </p>
+              <p className="mt-1 text-sm font-semibold">
+                {from ? formatLocation(from) : "Not set"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <MapPin className="size-3.5" />
+                To
+              </p>
+              <p className="mt-1 text-sm font-semibold">
+                {to ? formatLocation(to) : "Not set"}
+              </p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <CalendarDays className="size-3.5" />
+                Departure
+              </p>
+              <p className="mt-1 text-sm font-semibold">{displayDeparture}</p>
+            </div>
+            <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                <CalendarDays className="size-3.5" />
+                Return
+              </p>
+              <p className="mt-1 text-sm font-semibold">{displayReturn}</p>
+            </div>
+          </div>
+
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-2">
+              <Badge variant="secondary" className="rounded-full">
+                <Eye className="size-3" />
+                Preview mode
+              </Badge>
+              <p className="font-semibold">Sample AI-generated trip preview</p>
+              <p className="text-sm text-muted-foreground">
+                This is a read-only demo. Sign up to save trips and unlock the full
+                AI planner.
+              </p>
+            </div>
+            <Button asChild className="shrink-0 rounded-lg">
+              <Link href={registerHref}>
+                <Sparkles className="size-4" />
+                Sign up for full itinerary
+              </Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      <div className="relative">
-        <AiTripPlanResults plan={plan} readOnly />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-40 bg-gradient-to-t from-background to-transparent" />
-      </div>
+      <AiTripPlanResults plan={plan} readOnly heroImageFit="contain" />
 
       <Card className="rounded-2xl border-border/60">
         <CardContent className="flex flex-col items-center gap-4 p-8 text-center">

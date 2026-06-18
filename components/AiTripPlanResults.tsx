@@ -179,19 +179,27 @@ function TipsList({
 export function AiTripPlanResults({
   plan,
   readOnly = false,
+  heroImageFit = "cover",
   handleSave,
   onStartOver,
 }: {
   plan: AiGeneratedTripPlan
   readOnly?: boolean
+  heroImageFit?: "cover" | "contain"
   handleSave?: () => void | Promise<void>
   onStartOver?: () => void
 }) {
   const [heroImageUrl, setHeroImageUrl] = useState(plan.hero.image)
   const budgetTotal = parsePriceAmount(plan.budgetBreakdown.total)
+  const heroImageContain = heroImageFit === "contain"
+  const heroDestinationMatchesCountry =
+    plan.hero.destination.trim().toLowerCase() ===
+    plan.hero.country.trim().toLowerCase()
 
   useEffect(() => {
     setHeroImageUrl(plan.hero.image)
+
+    if (readOnly) return
 
     const loadCountryImage = async () => {
       if (!plan.hero.country?.trim()) return
@@ -201,7 +209,7 @@ export function AiTripPlanResults({
     }
 
     loadCountryImage()
-  }, [plan.hero.country, plan.hero.destination, plan.hero.image])
+  }, [plan.hero.country, plan.hero.destination, plan.hero.image, readOnly])
 
   const budgetRows = [
     { label: "Flights", value: plan.budgetBreakdown.flights, icon: Plane },
@@ -220,43 +228,122 @@ export function AiTripPlanResults({
     <div className="animate-in fade-in slide-in-from-bottom-4 space-y-8 duration-500">
       {/* Overview */}
       <Card className="overflow-hidden rounded-2xl border-border/60 shadow-md">
-        <div className="grid md:grid-cols-[1.2fr_1fr]">
-          <div className="relative h-48 w-full shrink-0 overflow-hidden md:h-[220px]">
+        <div
+          className={
+            heroImageContain ? "relative" : "grid md:grid-cols-[1.2fr_1fr]"
+          }
+        >
+          <div
+            className={
+              heroImageContain
+                ? "w-full overflow-hidden border-b border-border/60 bg-muted/20 md:w-1/2 md:border-b-0 md:border-r"
+                : "relative h-48 w-full shrink-0 overflow-hidden md:h-[220px]"
+            }
+          >
             <AppImage
               src={heroImageUrl}
               alt={plan.hero.destination}
-              fill
-              className="max-h-full max-w-full object-cover object-center"
+              fill={!heroImageContain}
+              wrapperClassName={heroImageContain ? "h-auto w-full" : undefined}
+              className={
+                heroImageContain
+                  ? "block h-auto w-full object-contain"
+                  : "object-cover object-center"
+              }
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r" />
+            {!heroImageContain && (
+              <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r" />
+            )}
           </div>
-          <CardHeader className="flex flex-col justify-center gap-3 p-6">
-            <Badge className="w-fit rounded-full bg-primary/10 text-primary">
-              <Sparkles className="size-3" />
-              AI-generated plan
-            </Badge>
-            <CardTitle className="text-2xl">
-              {plan.hero.destination}
-              <span className="font-normal text-muted-foreground">
-                {" "}
-                · {plan.hero.country}
-              </span>
-            </CardTitle>
-            <CardDescription className="text-sm leading-relaxed">
-              {plan.hero.summary}
-            </CardDescription>
-            <div className="flex flex-wrap gap-2 pt-1">
-              <Badge variant="outline">
-                <CalendarDays className="size-3" />
-                {plan.hero.duration}
-              </Badge>
-              <Badge variant="outline">
-                <Wallet className="size-3" />
-                {plan.hero.budget}
-              </Badge>
-              <Badge variant="secondary">{plan.hero.travelStyle}</Badge>
+          {heroImageContain ? (
+            <div className="flex flex-col justify-between gap-3 bg-background p-5 md:absolute md:inset-y-0 md:left-1/2 md:w-1/2 md:gap-4 md:border-l md:border-border/60 md:p-6">
+              <div className="space-y-2">
+                <Badge className="w-fit rounded-full bg-primary/10 text-primary">
+                  <Sparkles className="size-3" />
+                  AI-generated plan
+                </Badge>
+                <div className="space-y-0.5">
+                  <p className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
+                    {plan.hero.country}
+                  </p>
+                  {!heroDestinationMatchesCountry && (
+                    <p className="text-sm font-medium text-muted-foreground">
+                      {plan.hero.destination}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              <div className="space-y-2.5">
+                <CardDescription className="text-sm leading-snug">
+                  {plan.hero.summary}
+                </CardDescription>
+                <div className="flex flex-wrap gap-2">
+                  <Badge variant="outline" className="gap-1">
+                    <CalendarDays className="size-3" />
+                    {plan.hero.duration}
+                  </Badge>
+                  <Badge variant="outline" className="gap-1">
+                    <Wallet className="size-3" />
+                    {plan.hero.budget}
+                  </Badge>
+                  <Badge variant="secondary">{plan.hero.travelStyle}</Badge>
+                </div>
+                {plan.itinerary[0] && (
+                  <p className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <span className="flex size-5 shrink-0 items-center justify-center rounded-full bg-primary/10 text-[10px] font-semibold text-primary">
+                      1
+                    </span>
+                    <span className="truncate">{plan.itinerary[0].title}</span>
+                  </p>
+                )}
+              </div>
+
+              {plan.flights[0] && (
+                <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
+                  <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    <Plane className="size-3 shrink-0" />
+                    Suggested flight
+                  </p>
+                  <p className="mt-1 text-sm font-semibold leading-snug">
+                    {plan.flights[0].departureAirport} → {plan.flights[0].arrivalAirport}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {plan.flights[0].duration} · {plan.flights[0].stops} ·{" "}
+                    {plan.flights[0].price}
+                  </p>
+                </div>
+              )}
             </div>
-          </CardHeader>
+          ) : (
+            <CardHeader className="flex flex-col justify-center gap-3 p-6">
+              <Badge className="w-fit rounded-full bg-primary/10 text-primary">
+                <Sparkles className="size-3" />
+                AI-generated plan
+              </Badge>
+              <CardTitle className="text-2xl">
+                {plan.hero.destination}
+                <span className="font-normal text-muted-foreground">
+                  {" "}
+                  · {plan.hero.country}
+                </span>
+              </CardTitle>
+              <CardDescription className="text-sm leading-relaxed">
+                {plan.hero.summary}
+              </CardDescription>
+              <div className="flex flex-wrap gap-2 pt-1">
+                <Badge variant="outline">
+                  <CalendarDays className="size-3" />
+                  {plan.hero.duration}
+                </Badge>
+                <Badge variant="outline">
+                  <Wallet className="size-3" />
+                  {plan.hero.budget}
+                </Badge>
+                <Badge variant="secondary">{plan.hero.travelStyle}</Badge>
+              </div>
+            </CardHeader>
+          )}
         </div>
       </Card>
 
