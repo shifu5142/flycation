@@ -163,6 +163,7 @@
     "tripGenerationFailed": "Не удалось создать",
     "generating": "Создаём поездку…",
     "generatingSlow": "Займёт несколько секунд",
+    "generatingAlmostReady": "Ваша поездка почти готова",
     "completeToEnable": "Ответьте на все вопросы, чтобы создать поездку",
     "startOver": "Начать заново",
     "chooseOne": "Выберите один вариант",

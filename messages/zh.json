@@ -163,6 +163,7 @@
     "tripGenerationFailed": "生成失败",
     "generating": "正在生成行程…",
     "generatingSlow": "需要几秒钟",
+    "generatingAlmostReady": "您的行程即将准备好",
     "completeToEnable": "完成所有问题后即可生成",
     "startOver": "重新开始",
     "chooseOne": "请选择一项",

@@ -1,36 +1,89 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import { Plus, Sparkles } from "lucide-react"
+import { useEffect, useState } from "react"
+import Link from "next/link"
+import { CalendarDays, MapPin, Plus, Sparkles } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
-import { SavedTripCard, type SavedTrip } from "@/components/SavedTripCard"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { supabase } from "@/lib/supabase/client"
 
-function toSavedTrip(row: Record<string, unknown>): SavedTrip {
-  const returnDate = row.returnDate ?? row.return_date
+type TripPlan = {
+  id: string
+  destination: string
+  country: string
+  image: string
+  summary: string
+  duration: string
+}
 
+function toTripPlan(row: Record<string, unknown>): TripPlan {
   return {
-    id: row.id as string | number,
-    tripType: returnDate ? "roundtrip" : "oneway",
-    from: String(row.from ?? ""),
-    to: String(row.to ?? ""),
-    departure: String(row.departure ?? ""),
-    returnDate: returnDate ? String(returnDate) : null,
-    passengers: Number(row.passengers ?? 1),
-    travelClass: String(row.travelClass ?? row.travel_class ?? "Economy"),
-    imageUrl: (row.imageUrl ?? row.image_url) as string | null | undefined,
+    id: String(row.id ?? ""),
+    destination: String(row.destination ?? ""),
+    country: String(row.country ?? ""),
+    image: String(row.image ?? ""),
+    summary: String(row.summary ?? ""),
+    duration: String(row.duration ?? ""),
   }
 }
 
-function isPastTrip(trip: SavedTrip) {
-  const endDate = trip.returnDate || trip.departure
-  const today = new Date()
-  today.setHours(0, 0, 0, 0)
-  return new Date(endDate) < today
+function formatLabel(value: string) {
+  return value
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ")
+}
+
+function TripPlanCard({ trip }: { trip: TripPlan }) {
+  const imageSrc = trip.image || "/hero-travel.png"
+
+  return (
+    <Card className="group flex flex-col overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+      <div className="relative h-40 overflow-hidden">
+        <img
+          src={imageSrc}
+          alt={trip.destination}
+          className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent"
+          aria-hidden
+        />
+        <Badge className="absolute top-3 right-3 border border-white/25 bg-black/75 text-white backdrop-blur-sm">
+          {formatLabel(trip.country)}
+        </Badge>
+      </div>
+
+      <CardHeader className="gap-2 pb-2">
+        <CardTitle className="flex items-center gap-2 text-lg">
+          <MapPin className="size-4 shrink-0 text-primary" />
+          <span className="truncate">{formatLabel(trip.destination)}</span>
+        </CardTitle>
+        <CardDescription className="flex items-center gap-1.5 text-sm">
+          <CalendarDays className="size-3.5 shrink-0" />
+          {trip.duration || "Duration not set"}
+        </CardDescription>
+      </CardHeader>
+
+      <CardContent className="flex flex-1 flex-col gap-3 pt-0">
+        <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">
+          {trip.summary || "No summary available."}
+        </p>
+        <Button variant="outline" className="w-full rounded-xl" size="sm" asChild>
+          <Link href={`/my-trips/${trip.id}`}>View trip</Link>
+        </Button>
+      </CardContent>
+    </Card>
+  )
 }
 
 function EmptyTrips({ message }: { message: string }) {
@@ -48,28 +101,19 @@ function EmptyTrips({ message }: { message: string }) {
 }
 
 function MyTripsPage() {
-  const [tab, setTab] = useState("upcoming")
-  const [trips, setTrips] = useState<SavedTrip[] | null>(null)
-  const upcomingTrips = useMemo(
-    () => (trips ?? []).filter((trip) => !isPastTrip(trip)),
-    [trips]
-  )
-  const pastTrips = useMemo(
-    () => (trips ?? []).filter((trip) => isPastTrip(trip)),
-    [trips]
-  )
+  const [trips, setTrips] = useState<TripPlan[] | null>(null)
 
   useEffect(() => {
     const fetchTrips = async () => {
       const { data, error } = await supabase
-        .from("trips")
+        .from("trips_plan")
         .select("*")
       if (error) {
         console.error(error)
         return
       }
       setTrips(
-        (data ?? []).map((row: Record<string, unknown>) => toSavedTrip(row))
+        (data ?? []).map((row: Record<string, unknown>) => toTripPlan(row))
       )
     }
     fetchTrips()
@@ -88,49 +132,22 @@ function MyTripsPage() {
               Manage upcoming, past, and draft itineraries in one place
             </p>
           </div>
+          <Link href="/ai-trip-planner">
           <Button className="rounded-xl shadow-md shadow-primary/20">
-            <Plus className="size-4" />
-            Create new trip
-          </Button>
+              <Plus className="size-4" />
+              Create new trip
+            </Button>
+          </Link>
         </div>
 
         {trips === null ? null : trips.length === 0 ? (
           <EmptyTrips message="There are no trips" />
         ) : (
-          <Tabs value={tab} onValueChange={setTab}>
-            <TabsList className="h-11 rounded-xl bg-muted/70 p-1">
-              <TabsTrigger value="upcoming" className="rounded-lg px-4">
-                Upcoming ({upcomingTrips.length})
-              </TabsTrigger>
-              <TabsTrigger value="past" className="rounded-lg px-4">
-                Past ({pastTrips.length})
-              </TabsTrigger>
-            </TabsList>
-
-            <TabsContent value="upcoming" className="mt-6">
-              {upcomingTrips.length === 0 ? (
-                <EmptyTrips message="No upcoming trips" />
-              ) : (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {upcomingTrips.map((trip) => (
-                    <SavedTripCard key={trip.id} trip={trip} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-
-            <TabsContent value="past" className="mt-6">
-              {pastTrips.length === 0 ? (
-                <EmptyTrips message="No past trips yet" />
-              ) : (
-                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-                  {pastTrips.map((trip) => (
-                    <SavedTripCard key={trip.id} trip={trip} />
-                  ))}
-                </div>
-              )}
-            </TabsContent>
-          </Tabs>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+            {trips.map((trip) => (
+              <TripPlanCard key={trip.id} trip={trip} />
+            ))}
+          </div>
         )}
       </div>
     </DashboardShell>

@@ -163,6 +163,7 @@
     "tripGenerationFailed": "Failed to generate",
     "generating": "Generating trip…",
     "generatingSlow": "Will take few seconds",
+    "generatingAlmostReady": "Your trip is almost ready",
     "completeToEnable": "Complete all questions to enable generation",
     "startOver": "Start over",
     "chooseOne": "Choose one",

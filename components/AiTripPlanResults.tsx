@@ -1,3 +1,5 @@
+"use client"
+
 import type { ComponentType } from "react"
 import { useEffect, useState } from "react"
 import {
@@ -176,38 +178,39 @@ function TipsList({
 export function AiTripPlanResults({
   plan,
   readOnly = false,
+  handleSave,
 }: {
   plan: AiGeneratedTripPlan
   readOnly?: boolean
+  handleSave?: () => void | Promise<void>
 }) {
-  const { hero, budgetBreakdown } = plan
-  const [heroImageUrl, setHeroImageUrl] = useState(hero.image)
-  const budgetTotal = parsePriceAmount(budgetBreakdown.total)
+  const [heroImageUrl, setHeroImageUrl] = useState(plan.hero.image)
+  const budgetTotal = parsePriceAmount(plan.budgetBreakdown.total)
 
   useEffect(() => {
-    setHeroImageUrl(hero.image)
+    setHeroImageUrl(plan.hero.image)
 
     const loadCountryImage = async () => {
-      if (!hero.country?.trim()) return
+      if (!plan.hero.country?.trim()) return
 
-      const url = await fetchCountryImageUrl(hero.country, hero.destination)
+      const url = await fetchCountryImageUrl(plan.hero.country, plan.hero.destination)
       if (url) setHeroImageUrl(url)
     }
 
     loadCountryImage()
-  }, [hero.country, hero.destination, hero.image])
+  }, [plan.hero.country, plan.hero.destination, plan.hero.image])
 
   const budgetRows = [
-    { label: "Flights", value: budgetBreakdown.flights, icon: Plane },
-    { label: "Hotels", value: budgetBreakdown.hotels, icon: Building2 },
-    { label: "Food", value: budgetBreakdown.food, icon: Utensils },
-    { label: "Activities", value: budgetBreakdown.activities, icon: Sparkles },
+    { label: "Flights", value: plan.budgetBreakdown.flights, icon: Plane },
+    { label: "Hotels", value: plan.budgetBreakdown.hotels, icon: Building2 },
+    { label: "Food", value: plan.budgetBreakdown.food, icon: Utensils },
+    { label: "Activities", value: plan.budgetBreakdown.activities, icon: Sparkles },
     {
       label: "Transportation",
-      value: budgetBreakdown.transportation,
+      value: plan.budgetBreakdown.transportation,
       icon: MapPin,
     },
-    { label: "Shopping", value: budgetBreakdown.shopping, icon: Wallet },
+    { label: "Shopping", value: plan.budgetBreakdown.shopping, icon: Wallet },
   ].filter((row) => parsePriceAmount(row.value) > 0 || row.value)
 
   return (
@@ -218,7 +221,7 @@ export function AiTripPlanResults({
           <div className="relative h-48 w-full shrink-0 overflow-hidden md:h-[220px]">
             <img
               src={heroImageUrl}
-              alt={hero.destination}
+              alt={plan.hero.destination}
               className="absolute inset-0 size-full max-h-full max-w-full object-cover object-center"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent md:bg-gradient-to-r" />
@@ -229,25 +232,25 @@ export function AiTripPlanResults({
               AI-generated plan
             </Badge>
             <CardTitle className="text-2xl">
-              {hero.destination}
+              {plan.hero.destination}
               <span className="font-normal text-muted-foreground">
                 {" "}
-                · {hero.country}
+                · {plan.hero.country}
               </span>
             </CardTitle>
             <CardDescription className="text-sm leading-relaxed">
-              {hero.summary}
+              {plan.hero.summary}
             </CardDescription>
             <div className="flex flex-wrap gap-2 pt-1">
               <Badge variant="outline">
                 <CalendarDays className="size-3" />
-                {hero.duration}
+                {plan.hero.duration}
               </Badge>
               <Badge variant="outline">
                 <Wallet className="size-3" />
-                {hero.budget}
+                {plan.hero.budget}
               </Badge>
-              <Badge variant="secondary">{hero.travelStyle}</Badge>
+              <Badge variant="secondary">{plan.hero.travelStyle}</Badge>
             </div>
           </CardHeader>
         </div>
@@ -458,7 +461,7 @@ export function AiTripPlanResults({
                   <div className="flex items-center justify-between font-semibold">
                     <span>Total estimate</span>
                     <span className="text-lg text-primary">
-                      {budgetBreakdown.total}
+                      {plan.budgetBreakdown.total}
                     </span>
                   </div>
                 </CardContent>
@@ -699,7 +702,7 @@ export function AiTripPlanResults({
       <TipsList title="Local tips" icon={MapPin} tips={plan.localTips} />
       <TipsList title="Safety tips" icon={Shield} tips={plan.safetyTips} />
 
-      {!readOnly && (
+      {!readOnly && handleSave && (
       <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-sm">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
@@ -717,7 +720,10 @@ export function AiTripPlanResults({
               <Download className="size-4" />
               Export PDF
             </Button>
-            <Button className="rounded-xl shadow-md shadow-primary/20">
+            <Button
+              onClick={() => void handleSave()}
+              className="rounded-xl shadow-md shadow-primary/20"
+            >
               <Save className="size-4" />
               Save trip
             </Button>

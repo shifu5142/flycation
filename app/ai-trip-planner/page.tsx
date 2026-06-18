@@ -15,8 +15,12 @@ import {
   isIntakeComplete,
   type TripIntakeData,
 } from "@/lib/aiTripIntake"
+import { toTripsPlanInsert } from "@/lib/tripsPlan"
+import { supabase } from "@/app/services/supabase/client"
+import { useToast } from "@/components/ToastProvider"
 
 function AiTripPlannerPage() {
+  const { toast } = useToast()
   const t = useTranslations("aiTripPlanner")
   const locale = useLocale()
   const [tripAnswers, setTripAnswers] =
@@ -50,7 +54,7 @@ function AiTripPlannerPage() {
       if (!res.ok) {
         throw new Error(data.error ?? "Failed to generate trip plan")
       }
-
+      console.log("Generated plan:", data)
       setGeneratedPlan(data)
       setShowPlan(true)
     } catch (error) {
@@ -59,6 +63,36 @@ function AiTripPlannerPage() {
       setShowPlan(false)
     } finally {
       setGenerating(false)
+    }
+  }
+
+  const handleSaveTripPlan = async () => {
+    if (!generatedPlan) return
+
+    try {
+      const { data: authData } = await supabase.auth.getUser()
+      const user = authData.user
+      if (!user) {
+        toast("You must be logged in to save", "info")
+        return
+      }
+
+      const { error, data: tripData } = await supabase
+        .from("trips_plan")
+        .insert(toTripsPlanInsert(generatedPlan, user.id))
+        .select()
+        .single()
+
+      if (error) {
+        toast("Failed to save trip plan")
+        return
+      }
+
+      toast("Trip plan saved", "success")
+      console.log("Trip data:", tripData)
+    } catch (error) {
+      console.error("Failed to save trip plan:", error)
+      toast("Failed to save trip plan")
     }
   }
 
@@ -124,7 +158,7 @@ function AiTripPlannerPage() {
               </span>
               <Separator className="flex-1" />
             </div>
-            <AiTripPlanResults plan={generatedPlan} />
+            <AiTripPlanResults plan={generatedPlan} handleSave={handleSaveTripPlan} />
           </div>
         )}
       </div>

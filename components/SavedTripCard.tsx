@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import {
   Calendar,
   ChevronDown,
@@ -32,6 +33,7 @@ interface SavedTripCardProps {
   trip: SavedTrip
   onDelete?: (id: string | number) => void
   deleting?: boolean
+  viewTripHref?: string
 }
 
 function formatLabel(value: string) {
@@ -41,7 +43,12 @@ function formatLabel(value: string) {
     .join(" ")
 }
 
-function SavedTripCard({ trip, onDelete, deleting = false }: SavedTripCardProps) {
+function SavedTripCard({
+  trip,
+  onDelete,
+  deleting = false,
+  viewTripHref,
+}: SavedTripCardProps) {
   const [open, setOpen] = useState(false)
   const imageSrc = trip.imageUrl || "/hero-travel.png"
 
@@ -135,6 +142,18 @@ function SavedTripCard({ trip, onDelete, deleting = false }: SavedTripCardProps)
               </div>
             )}
           </div>
+        )}
+
+        {viewTripHref && (
+          <Button
+            variant="outline"
+            className="w-full rounded-xl"
+            size="sm"
+            asChild
+            onClick={(event) => event.stopPropagation()}
+          >
+            <Link href={viewTripHref}>View trip</Link>
+          </Button>
         )}
       </CardContent>
     </Card>

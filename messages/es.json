@@ -163,6 +163,7 @@
     "tripGenerationFailed": "Error al generar",
     "generating": "Generando viaje…",
     "generatingSlow": "Tomará unos segundos",
+    "generatingAlmostReady": "Tu viaje está casi listo",
     "completeToEnable": "Completa todas las preguntas para habilitar la generación",
     "startOver": "Empezar de nuevo",
     "chooseOne": "Elige una opción",

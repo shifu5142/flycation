@@ -163,6 +163,7 @@
     "tripGenerationFailed": "Échec de la génération",
     "generating": "Génération du voyage…",
     "generatingSlow": "Cela prendra quelques secondes",
+    "generatingAlmostReady": "Votre voyage est presque prêt",
     "completeToEnable": "Répondez à toutes les questions pour activer la génération",
     "startOver": "Recommencer",
     "chooseOne": "Choisissez une option",

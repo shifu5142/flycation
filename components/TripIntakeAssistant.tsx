@@ -111,7 +111,8 @@ function TripSummaryPanel({
   onReset: () => void
 }) {
   const t = useTranslations("aiTripPlanner")
-  const [showSlowHint, setShowSlowHint] = useState(false)
+  const [generatingLabelIndex, setGeneratingLabelIndex] = useState(0)
+  const [showAlmostReady, setShowAlmostReady] = useState(false)
   const complete = isIntakeComplete(data)
   const progress =
     [
@@ -153,18 +154,26 @@ function TripSummaryPanel({
 
   useEffect(() => {
     if (!generating) {
-      setShowSlowHint(false)
+      setGeneratingLabelIndex(0)
+      setShowAlmostReady(false)
       return
     }
 
-    const showHintTimer = setTimeout(() => setShowSlowHint(true), 3000)
-    const hideHintTimer = setTimeout(() => setShowSlowHint(false), 8000)
+    const almostReadyTimer = setTimeout(() => setShowAlmostReady(true), 20000)
+
+    const interval = setInterval(() => {
+      setGeneratingLabelIndex((prev) => prev + 1)
+    }, 6000)
 
     return () => {
-      clearTimeout(showHintTimer)
-      clearTimeout(hideHintTimer)
+      clearTimeout(almostReadyTimer)
+      clearInterval(interval)
     }
   }, [generating])
+
+  const generatingLabels = showAlmostReady
+    ? [t("generating"), t("generatingSlow"), t("generatingAlmostReady")]
+    : [t("generating"), t("generatingSlow")]
 
   return (
     <Card className="sticky top-4 rounded-2xl border-primary/15 shadow-lg shadow-primary/5">
@@ -238,7 +247,7 @@ function TripSummaryPanel({
           {generating ? (
             <>
               <Loader2 className="size-4 animate-spin" />
-              {showSlowHint ? t("generatingSlow") : t("generating")}
+              {generatingLabels[generatingLabelIndex % generatingLabels.length]}
             </>
           ) : (
             <>
