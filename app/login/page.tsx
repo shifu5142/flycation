@@ -88,7 +88,7 @@ function LoginPageContent() {
         password,
       })
       if (error) {
-        setStatus({ type: "error", message: t("verifyEmail") })
+        setStatus({ type: "error", message: error.message })
         return
       }
       if (data.session) {
@@ -102,7 +102,7 @@ function LoginPageContent() {
     } catch (error) {
       setStatus({
         type: "error",
-        message: error instanceof Error ? t("verifyEmail") : t("verifyEmail"),
+        message: error instanceof Error ? error.message : t("verifyEmail"),
       })
     } finally {
       setLoading(false)

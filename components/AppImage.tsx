@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useLayoutEffect, useRef, useState } from "react"
 
 import { cn } from "@/lib/utils"
 
@@ -18,12 +18,11 @@ type AppImageProps = Omit<
 function ImageShimmer({ className }: { className?: string }) {
   return (
     <div
-      className={cn(
-        "image-skeleton absolute inset-0 scale-105 bg-muted blur-md",
-        className
-      )}
+      className={cn("image-skeleton absolute inset-0 z-[1]", className)}
       aria-hidden
-    />
+    >
+      <span className="sr-only">Loading image…</span>
+    </div>
   )
 }
 
@@ -40,8 +39,11 @@ function AppImage({
 }: AppImageProps) {
   const imageSrc = src != null && src !== "" ? String(src) : ""
   const [loaded, setLoaded] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
 
-  useEffect(() => {
+  const markFullyLoaded = () => setLoaded(true)
+
+  useLayoutEffect(() => {
     if (!imageSrc) {
       setLoaded(true)
       return
@@ -49,27 +51,31 @@ function AppImage({
 
     setLoaded(false)
 
-    const img = new window.Image()
-    img.src = imageSrc
+    const img = imgRef.current
+    if (!img?.complete || img.naturalWidth === 0) return
 
-    if (img.complete) {
-      setLoaded(true)
+    if (typeof img.decode === "function") {
+      img.decode().then(markFullyLoaded).catch(markFullyLoaded)
       return
     }
 
-    const handleComplete = () => setLoaded(true)
-    img.addEventListener("load", handleComplete)
-    img.addEventListener("error", handleComplete)
-
-    return () => {
-      img.removeEventListener("load", handleComplete)
-      img.removeEventListener("error", handleComplete)
-    }
+    markFullyLoaded()
   }, [imageSrc])
 
   const handleLoad = (event: React.SyntheticEvent<HTMLImageElement>) => {
-    setLoaded(true)
-    onLoad?.(event)
+    const img = event.currentTarget
+
+    const markLoaded = () => {
+      setLoaded(true)
+      onLoad?.(event)
+    }
+
+    if (typeof img.decode === "function") {
+      img.decode().then(markLoaded).catch(markLoaded)
+      return
+    }
+
+    markLoaded()
   }
 
   const handleError = (event: React.SyntheticEvent<HTMLImageElement>) => {
@@ -80,21 +86,23 @@ function AppImage({
   return (
     <div
       className={cn(
-        fill ? "absolute inset-0" : "relative h-full w-full min-h-0",
+        fill ? "absolute inset-0 overflow-hidden" : "relative h-full w-full min-h-0 overflow-hidden",
         wrapperClassName
       )}
     >
       {!loaded && <ImageShimmer className={skeletonClassName} />}
       {imageSrc ? (
         <img
+          ref={imgRef}
           src={imageSrc}
           alt={alt}
           onLoad={handleLoad}
           onError={handleError}
           className={cn(
             fill && "absolute inset-0 size-full",
-            "transition-opacity duration-500 ease-out",
-            loaded ? "opacity-100" : "opacity-0",
+            !fill && "relative w-full",
+            "z-[2]",
+            loaded ? "opacity-100" : "pointer-events-none opacity-0",
             className
           )}
           {...props}

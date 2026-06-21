@@ -70,8 +70,8 @@ function LandingPage() {
     <div className="flex min-h-screen flex-col bg-background">
       <Navbar />
 
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 min-h-full">
+      <section className="relative">
+        <div className="pointer-events-none absolute inset-0 z-0">
           <AppImage
             src={HERO_IMAGE}
             alt={t("heroImageAlt")}
@@ -83,7 +83,7 @@ function LandingPage() {
           <div className="absolute inset-0 bg-gradient-to-b from-white/15 via-transparent to-white/90" />
         </div>
 
-        <div className="relative mx-auto max-w-7xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-14 lg:px-8 lg:pt-16">
+        <div className="relative z-10 mx-auto max-w-7xl px-4 pb-16 pt-12 sm:px-6 sm:pb-20 sm:pt-14 lg:px-8 lg:pt-16">
           <div className="mx-auto max-w-3xl text-center">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/25 px-4 py-1.5 text-sm text-white shadow-sm backdrop-blur-sm [text-shadow:0_1px_3px_rgba(0,0,0,0.35)]">
               <Sparkles className="size-3.5" />

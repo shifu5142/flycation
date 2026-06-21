@@ -202,36 +202,95 @@
 
 @keyframes image-shimmer {
   0% {
-    transform: translateX(-100%);
+    transform: translateX(-120%) skewX(-12deg);
   }
   100% {
-    transform: translateX(100%);
+    transform: translateX(220%) skewX(-12deg);
+  }
+}
+
+@keyframes image-skeleton-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.72;
+  }
+}
+
+@keyframes image-skeleton-gradient {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
   }
 }
 
 .image-skeleton {
   overflow: hidden;
+  background: linear-gradient(
+    110deg,
+    var(--muted) 0%,
+    color-mix(in oklch, var(--muted) 82%, white) 38%,
+    var(--muted) 72%,
+    color-mix(in oklch, var(--muted) 88%, white) 100%
+  );
+  background-size: 220% 100%;
+  animation:
+    image-skeleton-pulse 2.2s ease-in-out infinite,
+    image-skeleton-gradient 2.8s ease-in-out infinite;
+}
+
+.image-skeleton::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.06) 0%,
+    transparent 45%,
+    rgba(0, 0, 0, 0.03) 100%
+  );
+  pointer-events: none;
 }
 
 .image-skeleton::after {
   content: "";
   position: absolute;
-  inset: 0;
+  inset: -20% 0;
+  width: 55%;
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.5) 50%,
+    rgba(255, 255, 255, 0.08) 20%,
+    rgba(255, 255, 255, 0.55) 50%,
+    rgba(255, 255, 255, 0.08) 80%,
     transparent 100%
   );
-  filter: blur(8px);
-  animation: image-shimmer 1.6s ease-in-out infinite;
+  animation: image-shimmer 1.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+  pointer-events: none;
+}
+
+.dark .image-skeleton {
+  background: linear-gradient(
+    110deg,
+    var(--muted) 0%,
+    color-mix(in oklch, var(--muted) 75%, white) 38%,
+    var(--muted) 72%,
+    color-mix(in oklch, var(--muted) 85%, white) 100%
+  );
 }
 
 .dark .image-skeleton::after {
   background: linear-gradient(
     90deg,
     transparent 0%,
-    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.03) 20%,
+    rgba(255, 255, 255, 0.14) 50%,
+    rgba(255, 255, 255, 0.03) 80%,
     transparent 100%
   );
 }
