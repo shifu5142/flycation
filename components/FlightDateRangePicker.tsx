@@ -246,6 +246,8 @@ function FlightDateRangePicker({
           ? `${formatShort(departure)} → Return`
           : "Select dates"
 
+  const fieldLabel = label ?? (tripType === "oneway" ? "Departure" : "Dates")
+
   const dropdown =
     open &&
     mounted &&
@@ -262,25 +264,31 @@ function FlightDateRangePicker({
           width: position.width,
           zIndex: 200,
         }}
-        className="overflow-hidden rounded-xl border border-border bg-popover shadow-2xl"
+        className="flex max-h-[min(28rem,calc(100vh-6rem))] flex-col overflow-hidden overscroll-contain rounded-xl border border-border bg-popover shadow-2xl"
         onMouseDown={(event) => event.stopPropagation()}
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="border-b border-border bg-muted/30 px-3 py-2">
-          <p className="text-xs font-medium text-muted-foreground">
-            {tripType === "oneway"
-              ? "Select departure"
-              : returnDate
-                ? `${selectedDays} day${selectedDays === 1 ? "" : "s"} trip`
-                : departure
-                  ? "Select return date"
-                  : "Select departure date"}
+        <div className="sticky top-0 z-10 shrink-0 border-b border-border bg-popover">
+          <p className="px-3 pt-2.5 text-xs font-semibold text-foreground">
+            {fieldLabel}
           </p>
+          <div className="bg-muted/30 px-3 py-2">
+            <p className="text-xs font-medium text-muted-foreground">
+              {tripType === "oneway"
+                ? "Select departure"
+                : returnDate
+                  ? `${selectedDays} day${selectedDays === 1 ? "" : "s"} trip`
+                  : departure
+                    ? "Select return date"
+                    : "Select departure date"}
+            </p>
+          </div>
         </div>
 
         <div
           className={cn(
-            "grid gap-3 p-3",
+            "min-h-0 flex-1 overflow-y-auto overscroll-contain p-3",
+            "grid gap-3",
             tripType === "roundtrip" ? "sm:grid-cols-2" : "grid-cols-1"
           )}
         >
@@ -391,43 +399,51 @@ function FlightDateRangePicker({
     )
 
   return (
-    <div ref={containerRef} className="space-y-1.5">
-      <Label className="text-sm font-medium text-muted-foreground">
-        {label ?? (tripType === "oneway" ? "Departure" : "Dates")}
-      </Label>
-
-      <button
-        ref={triggerRef}
-        type="button"
-        aria-expanded={open}
-        aria-controls={panelId}
-        onClick={(event) => {
-          event.stopPropagation()
-          if (open) {
-            setOpen(false)
-            return
-          }
-          setViewMonth(
-            departure
-              ? startOfDay(parseISO(departure))
-              : startOfDay(new Date())
-          )
-          updatePosition()
-          setOpen(true)
-        }}
+    <div ref={containerRef} className={cn("relative", open && "z-[201]")}>
+      <div
         className={cn(
-          "flex h-11 w-full items-center gap-2 rounded-xl border border-input/80 bg-muted/30 px-3 text-left text-sm shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
-          !departure && "text-muted-foreground"
+          "space-y-1.5",
+          open &&
+            "sticky top-4 z-[201] rounded-xl bg-background/95 p-1 backdrop-blur-sm sm:top-16"
         )}
       >
-        <CalendarDays className="size-4 shrink-0 text-primary" />
-        <span className="min-w-0 flex-1 truncate font-medium">{triggerLabel}</span>
-        {selectedDays !== null && selectedDays > 0 && (
-          <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
-            {selectedDays}d
-          </span>
-        )}
-      </button>
+        <Label className="text-sm font-medium text-muted-foreground">
+          {fieldLabel}
+        </Label>
+
+        <button
+          ref={triggerRef}
+          type="button"
+          aria-expanded={open}
+          aria-controls={panelId}
+          onClick={(event) => {
+            event.stopPropagation()
+            if (open) {
+              setOpen(false)
+              return
+            }
+            setViewMonth(
+              departure
+                ? startOfDay(parseISO(departure))
+                : startOfDay(new Date())
+            )
+            updatePosition()
+            setOpen(true)
+          }}
+          className={cn(
+            "flex h-11 w-full items-center gap-2 rounded-xl border border-input/80 bg-muted/30 px-3 text-left text-sm shadow-sm transition-colors hover:border-primary/30 hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25",
+            !departure && "text-muted-foreground"
+          )}
+        >
+          <CalendarDays className="size-4 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1 truncate font-medium">{triggerLabel}</span>
+          {selectedDays !== null && selectedDays > 0 && (
+            <span className="shrink-0 rounded-md bg-primary/10 px-1.5 py-0.5 text-[11px] font-semibold text-primary">
+              {selectedDays}d
+            </span>
+          )}
+        </button>
+      </div>
 
       {dropdown}
     </div>

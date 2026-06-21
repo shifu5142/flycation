@@ -123,25 +123,30 @@ function AirportSearchInput({
           width: position.width,
           zIndex: 200,
         }}
-        className="overflow-hidden rounded-xl border border-border bg-popover shadow-xl"
+        className="flex max-h-[min(24rem,calc(100vh-6rem))] flex-col overflow-hidden overscroll-contain rounded-xl border border-border bg-popover shadow-xl"
       >
-        <div className="border-b border-border p-2">
-          <div className="relative">
-            <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              ref={searchRef}
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search country or airport…"
-              className="h-8 rounded-lg pl-8 text-sm"
-            />
+        <div className="sticky top-0 z-10 shrink-0 border-b border-border bg-popover">
+          <div className="px-3 pt-2.5">
+            <p className="text-xs font-semibold text-foreground">{label}</p>
           </div>
-          <p className="mt-1.5 px-1 text-xs text-muted-foreground">
-            {results.length} of {COUNTRY_AIRPORTS.length} countries
-          </p>
+          <div className="p-2 pt-1.5">
+            <div className="relative">
+              <Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" />
+              <Input
+                ref={searchRef}
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search country or airport…"
+                className="h-8 rounded-lg pl-8 text-sm"
+              />
+            </div>
+            <p className="mt-1.5 px-1 text-xs text-muted-foreground">
+              {results.length} of {COUNTRY_AIRPORTS.length} countries
+            </p>
+          </div>
         </div>
 
-        <ScrollArea className="h-56">
+        <ScrollArea className="min-h-0 flex-1">
           <ul className="p-1">
             {results.length === 0 ? (
               <li className="px-3 py-6 text-center text-sm text-muted-foreground">
@@ -181,40 +186,54 @@ function AirportSearchInput({
     )
 
   return (
-    <div ref={containerRef} className={cn("relative space-y-1.5", className)}>
-      <Label htmlFor={id} className={cn("font-medium text-muted-foreground", isLarge ? "text-sm" : "text-xs")}>
-        {label}
-      </Label>
-      <button
-        ref={triggerRef}
-        id={id}
-        type="button"
-        aria-expanded={open}
-        aria-controls={listId}
-        onClick={() => {
-          setOpen((prev) => {
-            const next = !prev
-            if (next) updatePosition()
-            return next
-          })
-        }}
+    <div ref={containerRef} className={cn("relative", open && "z-[201]", className)}>
+      <div
         className={cn(
-          "flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 text-left shadow-sm transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
-          isLarge ? "h-11 text-sm" : "h-9 text-sm",
-          !displayValue && "text-muted-foreground"
+          "space-y-1.5",
+          open &&
+            "sticky top-4 z-[201] rounded-xl bg-background/95 p-1 backdrop-blur-sm sm:top-16"
         )}
       >
-        <span className="flex min-w-0 items-center gap-2 truncate">
-          <MapPin className={cn("shrink-0 text-primary", isLarge ? "size-4" : "size-3.5")} />
-          <span className="truncate">{displayValue || placeholder}</span>
-        </span>
-        <ChevronDown
+        <Label
+          htmlFor={id}
           className={cn(
-            "size-3.5 shrink-0 text-muted-foreground transition-transform",
-            open && "rotate-180"
+            "font-medium text-muted-foreground",
+            isLarge ? "text-sm" : "text-xs"
           )}
-        />
-      </button>
+        >
+          {label}
+        </Label>
+        <button
+          ref={triggerRef}
+          id={id}
+          type="button"
+          aria-expanded={open}
+          aria-controls={listId}
+          onClick={() => {
+            setOpen((prev) => {
+              const next = !prev
+              if (next) updatePosition()
+              return next
+            })
+          }}
+          className={cn(
+            "flex w-full items-center justify-between gap-2 rounded-xl border border-input bg-background px-3 text-left shadow-sm transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring",
+            isLarge ? "h-11 text-sm" : "h-9 text-sm",
+            !displayValue && "text-muted-foreground"
+          )}
+        >
+          <span className="flex min-w-0 items-center gap-2 truncate">
+            <MapPin className={cn("shrink-0 text-primary", isLarge ? "size-4" : "size-3.5")} />
+            <span className="truncate">{displayValue || placeholder}</span>
+          </span>
+          <ChevronDown
+            className={cn(
+              "size-3.5 shrink-0 text-muted-foreground transition-transform",
+              open && "rotate-180"
+            )}
+          />
+        </button>
+      </div>
 
       {dropdown}
     </div>

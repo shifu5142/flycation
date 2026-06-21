@@ -2,7 +2,9 @@
 
 import { useState } from "react"
 import { useTranslations } from "next-intl"
-import { Menu, Plane, X } from "lucide-react"
+import { Menu, X } from "lucide-react"
+
+import { AppLogo } from "@/components/AppLogo"
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
 import { Link } from "@/i18n/navigation"
@@ -25,9 +27,7 @@ function Navbar() {
     <header className="sticky top-0 z-50 border-b border-border/60 bg-background/95 backdrop-blur-md">
       <nav className="mx-auto grid h-16 max-w-7xl grid-cols-[1fr_auto_1fr] items-center px-4 sm:px-6 lg:px-8">
         <Link href="/" className="flex items-center gap-2 font-semibold">
-          <span className="flex size-8 items-center justify-center rounded-lg bg-primary text-primary-foreground">
-            <Plane className="size-4" />
-          </span>
+          <AppLogo />
           <span className="text-lg tracking-tight">{tCommon("appName")}</span>
         </Link>
 

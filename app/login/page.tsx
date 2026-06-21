@@ -29,6 +29,8 @@ import {
 import { Separator } from "@/components/ui/separator"
 import { FaGithub } from "react-icons/fa"
 import { FaGoogle } from "react-icons/fa"
+import { Toast } from "radix-ui"
+import { useToast } from "@/components/ToastProvider"
 
 type FormStatus = {
   type: "success" | "error"
@@ -37,6 +39,7 @@ type FormStatus = {
 
 function LoginPageContent() {
   const router = useRouter()
+  const { toast } = useToast()
   const searchParams = useSearchParams()
   const t = useTranslations("auth")
   const [email, setEmail] = useState("")
@@ -105,7 +108,6 @@ function LoginPageContent() {
       setLoading(false)
     }
   }
-const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
   const handlegoogleLogin = async () => {
     setLoading(true)
     setStatus(null)
@@ -113,11 +115,11 @@ const SUPABASE_URL_callback = process.env.NEXT_PUBLIC_SUPABASE_URL
       const { error } = await supabase.auth.signInWithOAuth({
         provider: "google",
         options: {
-          redirectTo: `${SUPABASE_URL_callback}/auth/v1/callback`,
+          redirectTo: `${window.location.origin}/auth/callback`,
         },
       })
       if (error) {
-        throw error
+        toast(error.message, "info")
       }
     } catch (error) {
       console.error(error)
