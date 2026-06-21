@@ -15,6 +15,7 @@ import { Link } from "@/i18n/navigation"
 import { supabase } from "@/app/services/supabase/client"
 import { AuthLayout } from "@/components/auth/AuthLayout"
 import { IconInput } from "@/components/auth/IconInput"
+import { VerificationEmailSentModal } from "@/components/auth/VerificationEmailSentModal"
 import { FormAlert } from "@/components/FormAlert"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -30,7 +31,7 @@ import {
 import { Separator } from "@/components/ui/separator"
 
 type FormStatus = {
-  type: "success" | "error"
+  type: "error"
   message: string
 } | null
 
@@ -46,6 +47,8 @@ function RegisterPage() {
   })
   const [loading, setLoading] = useState(false)
   const [status, setStatus] = useState<FormStatus>(null)
+  const [verificationOpen, setVerificationOpen] = useState(false)
+  const [registeredEmail, setRegisteredEmail] = useState("")
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }))
@@ -93,8 +96,8 @@ function RegisterPage() {
         throw error
       }
       if (data.user) {
-        setStatus({ type: "success", message: t("accountCreated") + " " + t("verifyEmailBeforeLogin") })
-        setTimeout(() => router.push("/login"), 1500)
+        setRegisteredEmail(form.email.trim())
+        setVerificationOpen(true)
       }
     } catch (error) {
       const message =
@@ -197,9 +200,9 @@ function RegisterPage() {
               </div>
             </div>
 
-            {status && (
+            {status?.type === "error" && (
               <FormAlert
-                type={status.type}
+                type="error"
                 message={status.message}
                 onDismiss={() => setStatus(null)}
               />
@@ -236,6 +239,13 @@ function RegisterPage() {
           </Button>
         </CardFooter>
       </Card>
+
+      <VerificationEmailSentModal
+        open={verificationOpen}
+        onOpenChange={setVerificationOpen}
+        email={registeredEmail}
+        onContinue={() => router.push("/login")}
+      />
     </AuthLayout>
   )
 }
