@@ -183,6 +183,7 @@ function DashboardPage() {
           travelClass,
           user_id: supabaseUser.id,
           imageUrl,
+          booking_number: Math.random().toString(36).substring(2, 15),
         })
         .select()
         .single();
