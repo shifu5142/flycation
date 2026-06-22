@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import {
   Building2,
   Coins,
@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
-import { AppImage } from "@/components/AppImage"
+import { CountryImage } from "@/components/CountryImage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -31,12 +31,13 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import {
-  exploreDestinations,
   explorePriceRanges,
   exploreRegions,
   exploreSeasons,
   type ExploreDestination,
 } from "@/lib/mockExplorePage"
+import { getStaticCountryImagePath } from "@/lib/countryStaticImages"
+import { getExploreResults } from "@/lib/exploreFilterResults"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ToastProvider"
 
@@ -79,6 +80,8 @@ function DestinationCard({
     const currencyCode = Array.isArray(apiCountry.currencies)
       ? apiCountry.currencies[0]?.code
       : Object.keys(apiCountry.currencies ?? {})[0]
+    const countryName =
+      apiCountry.name?.common ?? apiCountry.names?.common ?? ""
 
     return (
       <Card
@@ -88,10 +91,11 @@ function DestinationCard({
         )}
       >
         <div className={cn("relative overflow-hidden", large ? "h-56" : "h-44")}>
-          <AppImage
-            src={apiCountry.flags?.png ?? apiCountry.flag?.url_png ?? ""}
-            alt={apiCountry.name?.common ?? apiCountry.names?.common ?? "Country flag"}
-            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+          <CountryImage
+            country={countryName}
+            src={getStaticCountryImagePath(countryName)}
+            alt={`${countryName} travel`}
+            className="transition-transform duration-500 group-hover:scale-105"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
           <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
@@ -159,10 +163,11 @@ function DestinationCard({
       )}
     >
       <div className={cn("relative overflow-hidden", large ? "h-56" : "h-44")}>
-        <AppImage
-          src={destination.image}
+        <CountryImage
+          country={destination.country}
+          src={getStaticCountryImagePath(destination.country)}
           alt={destination.name}
-          className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+          className="transition-transform duration-500 group-hover:scale-105"
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
         <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
@@ -206,32 +211,43 @@ function ExplorePage() {
   const [isExploring, setIsExploring] = useState(false)
   const [apiCountries, setApiCountries] = useState<ApiCountry[]>([])
 
+  const filterResults = useMemo(
+    () => getExploreResults(region, season, price),
+    [region, season, price]
+  )
+
   const filtered = useMemo(() => {
-    return exploreDestinations.filter((d) => {
+    return filterResults.all.filter((d) => {
       const matchesQuery =
         !query.trim() ||
         d.name.toLowerCase().includes(query.toLowerCase()) ||
         d.country.toLowerCase().includes(query.toLowerCase())
-      const matchesRegion = region === "All" || d.region === region
-      const matchesSeason = season === "All" || d.season === season
-      const matchesPrice =
-        price === "Any" ||
-        (price === "Under $700" && d.priceFrom < 700) ||
-        (price === "$700–$1000" &&
-          d.priceFrom >= 700 &&
-          d.priceFrom <= 1000) ||
-        (price === "$1000+" && d.priceFrom > 1000)
-      return matchesQuery && matchesRegion && matchesSeason && matchesPrice
+      return matchesQuery
     })
-  }, [query, region, season, price])
+  }, [filterResults.all, query])
 
-  const featured = exploreDestinations.filter((d) => d.featured)
-  const trending = exploreDestinations.filter((d) => d.trending)
-  const recommended = exploreDestinations.slice(0, 3)
-  const hasApiData = apiCountries.length > 0
-  const apiFeatured = apiCountries.slice(0, 3)
-  const apiTrending = apiCountries.slice(3, 9)
-  const apiRecommended = apiCountries.slice(9, 12)
+  const { featured, trending, recommended } = filterResults
+
+  const filteredApiCountries = useMemo(() => {
+    return apiCountries.filter((country) => {
+      const name = country.name?.common ?? country.names?.common ?? ""
+      const matchesRegion = region === "All" || country.region === region
+      const matchesQuery =
+        !query.trim() ||
+        name.toLowerCase().includes(query.toLowerCase()) ||
+        (country.region ?? "").toLowerCase().includes(query.toLowerCase())
+      return matchesRegion && matchesQuery
+    })
+  }, [apiCountries, region, query])
+
+  const hasApiData = filteredApiCountries.length > 0
+  const apiFeatured = filteredApiCountries.slice(0, 3)
+  const apiTrending = filteredApiCountries.slice(3, 9)
+  const apiRecommended = filteredApiCountries.slice(9, 12)
+
+  useEffect(() => {
+    setApiCountries([])
+  }, [region, season, price])
 
   const handleExploreNow = async () => {
     if (isExploring) return
@@ -313,7 +329,9 @@ function ExplorePage() {
                 <Filter className="size-4 text-primary" />
                 Filters
               </CardTitle>
-              <CardDescription>UI only — connect later</CardDescription>
+              <CardDescription>
+                {region} · {season} · {price}
+              </CardDescription>
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
@@ -385,9 +403,12 @@ function ExplorePage() {
 
           <div className="space-y-10">
             <section>
-              <div className="mb-4 flex items-center gap-2">
+              <div className="mb-4 flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold">Featured destinations</h2>
                 <Badge variant="secondary">Curated</Badge>
+                <Badge variant="outline" className="text-xs">
+                  {region} · {season} · {price}
+                </Badge>
                 <Button
                   onClick={handleExploreNow}
                   disabled={isExploring}
@@ -416,9 +437,20 @@ function ExplorePage() {
                         large={i === 0}
                       />
                     ))
-                  : featured.map((d, i) => (
-                      <DestinationCard key={d.id} destination={d} large={i === 0} />
-                    ))}
+                  : featured.length === 0 ? (
+                      <Card className="border-dashed py-8 text-center sm:col-span-2">
+                        <CardContent>
+                          <p className="font-medium">No featured destinations</p>
+                          <p className="mt-1 text-sm text-muted-foreground">
+                            Try a different region, season, or price
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      featured.map((d, i) => (
+                        <DestinationCard key={d.id} destination={d} large={i === 0} />
+                      ))
+                    )}
               </div>
             </section>
 
@@ -461,11 +493,11 @@ function ExplorePage() {
               <h2 className="mb-4 text-xl font-semibold">
                 All destinations
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({hasApiData ? apiCountries.length : filtered.length})
+                  ({hasApiData ? filteredApiCountries.length : filtered.length})
                 </span>
               </h2>
               {hasApiData ? (
-                apiCountries.length === 0 ? (
+                filteredApiCountries.length === 0 ? (
                   <Card className="border-dashed py-12 text-center">
                     <CardContent>
                       <p className="font-medium">No countries found</p>
@@ -476,7 +508,7 @@ function ExplorePage() {
                   </Card>
                 ) : (
                   <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {apiCountries.map((country, i) => (
+                    {filteredApiCountries.map((country, i) => (
                       <DestinationCard
                         key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
                         apiCountry={country}
