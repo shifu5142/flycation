@@ -2,8 +2,13 @@
 
 import { useMemo, useState } from "react"
 import {
+  Building2,
+  Coins,
   Compass,
+  ExternalLink,
   Filter,
+  Languages,
+  Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
@@ -33,14 +38,119 @@ import {
   type ExploreDestination,
 } from "@/lib/mockExplorePage"
 import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ToastProvider"
+
+type ApiCountry = {
+  name?: { common?: string }
+  names?: { common?: string }
+  flags?: { png?: string }
+  flag?: { url_png?: string }
+  region?: string
+  subregion?: string
+  capital?: string[]
+  capitals?: { name?: string }[]
+  languages?: Record<string, string> | { name?: string }[]
+  currencies?:
+    | Record<string, { name?: string; symbol?: string }>
+    | { code?: string; symbol?: string; name?: string }[]
+  population?: number
+  maps?: { googleMaps?: string }
+  links?: { google_maps?: string }
+  codes?: { alpha_2?: string }
+}
 
 function DestinationCard({
   destination,
+  apiCountry,
   large,
 }: {
-  destination: ExploreDestination
+  destination?: ExploreDestination
+  apiCountry?: ApiCountry
   large?: boolean
 }) {
+  if (apiCountry) {
+    const mapUrl = apiCountry.maps?.googleMaps ?? apiCountry.links?.google_maps
+    const language = Array.isArray(apiCountry.languages)
+      ? apiCountry.languages[0]?.name
+      : Object.values(apiCountry.languages ?? {})[0]
+    const currency = Array.isArray(apiCountry.currencies)
+      ? apiCountry.currencies[0]
+      : Object.entries(apiCountry.currencies ?? {})[0]?.[1]
+    const currencyCode = Array.isArray(apiCountry.currencies)
+      ? apiCountry.currencies[0]?.code
+      : Object.keys(apiCountry.currencies ?? {})[0]
+
+    return (
+      <Card
+        className={cn(
+          "group overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg",
+          large && "sm:col-span-2"
+        )}
+      >
+        <div className={cn("relative overflow-hidden", large ? "h-56" : "h-44")}>
+          <AppImage
+            src={apiCountry.flags?.png ?? apiCountry.flag?.url_png ?? ""}
+            alt={apiCountry.name?.common ?? apiCountry.names?.common ?? "Country flag"}
+            className="size-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
+            <div className="text-white">
+              <p className="text-lg font-bold">
+                {apiCountry.name?.common ?? apiCountry.names?.common}
+              </p>
+              <p className="text-sm text-white/85">
+                {apiCountry.region}
+                {apiCountry.subregion ? ` · ${apiCountry.subregion}` : ""}
+              </p>
+            </div>
+            <Badge className="border-white/20 bg-black/40 text-white backdrop-blur-sm">
+              {apiCountry.region}
+            </Badge>
+          </div>
+        </div>
+        <CardHeader className="gap-1 pb-2">
+          <CardDescription className="line-clamp-2 text-sm">
+            <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
+              <span className="inline-flex items-center gap-1">
+                <Building2 className="size-3.5" />
+                {apiCountry.capital?.[0] ?? apiCountry.capitals?.[0]?.name}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Languages className="size-3.5" />
+                {language}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Coins className="size-3.5" />
+                {currency?.symbol} {currencyCode}
+              </span>
+            </span>
+          </CardDescription>
+        </CardHeader>
+        <CardFooter className="flex items-center justify-between border-t border-border/50 pt-4">
+          <div>
+            <p className="text-xs text-muted-foreground">Population</p>
+            <p className="text-lg font-bold text-primary">{apiCountry.population}</p>
+          </div>
+          {mapUrl ? (
+            <Button asChild size="sm" className="rounded-xl">
+              <a href={mapUrl} target="_blank" rel="noopener noreferrer">
+                View on Map
+                <ExternalLink className="size-3.5" />
+              </a>
+            </Button>
+          ) : (
+            <Button size="sm" className="rounded-xl" disabled>
+              View on Map
+            </Button>
+          )}
+        </CardFooter>
+      </Card>
+    )
+  }
+
+  if (!destination) return null
+
   return (
     <Card
       className={cn(
@@ -87,11 +197,14 @@ function DestinationCard({
 }
 
 function ExplorePage() {
+  const { toast } = useToast()  
   const [query, setQuery] = useState("")
   const [region, setRegion] = useState("All")
   const [season, setSeason] = useState("All")
   const [price, setPrice] = useState("Any")
   const [showFilters, setShowFilters] = useState(false)
+  const [isExploring, setIsExploring] = useState(false)
+  const [apiCountries, setApiCountries] = useState<ApiCountry[]>([])
 
   const filtered = useMemo(() => {
     return exploreDestinations.filter((d) => {
@@ -115,6 +228,40 @@ function ExplorePage() {
   const featured = exploreDestinations.filter((d) => d.featured)
   const trending = exploreDestinations.filter((d) => d.trending)
   const recommended = exploreDestinations.slice(0, 3)
+  const hasApiData = apiCountries.length > 0
+  const apiFeatured = apiCountries.slice(0, 3)
+  const apiTrending = apiCountries.slice(3, 9)
+  const apiRecommended = apiCountries.slice(9, 12)
+
+  const handleExploreNow = async () => {
+    if (isExploring) return
+    if (!query.trim() || !region.trim() || !season.trim() || !price.trim()) {
+      toast("Please fill in all fields", "info")
+      return
+    }
+    const requestBody = {
+      query,
+      region,
+      season,
+      price,
+    }
+    setIsExploring(true)
+    try {
+      const res = await fetch("/api/Explore", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      })
+      const data = await res.json()
+      const countries =
+        data.data?.objects ?? data.objects ?? (Array.isArray(data) ? data : [])
+      setApiCountries(countries)
+      console.log("Generated trip plan:", data)
+      toast("Trip plan generated successfully", "success")
+    } finally {
+      setIsExploring(false)
+    }
+  }
 
   return (
     <DashboardShell>
@@ -241,11 +388,37 @@ function ExplorePage() {
               <div className="mb-4 flex items-center gap-2">
                 <h2 className="text-xl font-semibold">Featured destinations</h2>
                 <Badge variant="secondary">Curated</Badge>
+                <Button
+                  onClick={handleExploreNow}
+                  disabled={isExploring}
+                  variant="default"
+                  className={cn(
+                    "ml-auto bg-blue-600 text-white transition-all duration-300 hover:bg-blue-700",
+                    isExploring && "animate-pulse cursor-wait opacity-90"
+                  )}
+                >
+                  {isExploring ? (
+                    <>
+                      <Loader2 className="size-4 animate-spin" />
+                      Exploring…
+                    </>
+                  ) : (
+                    "Explore Now"
+                  )}
+                </Button>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                {featured.map((d, i) => (
-                  <DestinationCard key={d.id} destination={d} large={i === 0} />
-                ))}
+                {hasApiData
+                  ? apiFeatured.map((country, i) => (
+                      <DestinationCard
+                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
+                        apiCountry={country}
+                        large={i === 0}
+                      />
+                    ))
+                  : featured.map((d, i) => (
+                      <DestinationCard key={d.id} destination={d} large={i === 0} />
+                    ))}
               </div>
             </section>
 
@@ -255,18 +428,32 @@ function ExplorePage() {
                 <h2 className="text-xl font-semibold">Trending now</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {trending.map((d) => (
-                  <DestinationCard key={d.id} destination={d} />
-                ))}
+                {hasApiData
+                  ? apiTrending.map((country, i) => (
+                      <DestinationCard
+                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
+                        apiCountry={country}
+                      />
+                    ))
+                  : trending.map((d) => (
+                      <DestinationCard key={d.id} destination={d} />
+                    ))}
               </div>
             </section>
 
             <section>
               <h2 className="mb-4 text-xl font-semibold">Recommended for you</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {recommended.map((d) => (
-                  <DestinationCard key={d.id} destination={d} />
-                ))}
+                {hasApiData
+                  ? apiRecommended.map((country, i) => (
+                      <DestinationCard
+                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
+                        apiCountry={country}
+                      />
+                    ))
+                  : recommended.map((d) => (
+                      <DestinationCard key={d.id} destination={d} />
+                    ))}
               </div>
             </section>
 
@@ -274,10 +461,30 @@ function ExplorePage() {
               <h2 className="mb-4 text-xl font-semibold">
                 All destinations
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({filtered.length})
+                  ({hasApiData ? apiCountries.length : filtered.length})
                 </span>
               </h2>
-              {filtered.length === 0 ? (
+              {hasApiData ? (
+                apiCountries.length === 0 ? (
+                  <Card className="border-dashed py-12 text-center">
+                    <CardContent>
+                      <p className="font-medium">No countries found</p>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        Try adjusting your filters
+                      </p>
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                    {apiCountries.map((country, i) => (
+                      <DestinationCard
+                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
+                        apiCountry={country}
+                      />
+                    ))}
+                  </div>
+                )
+              ) : filtered.length === 0 ? (
                 <Card className="border-dashed py-12 text-center">
                   <CardContent>
                     <p className="font-medium">No destinations match your filters</p>
