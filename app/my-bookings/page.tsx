@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import {
   Building2,
   Check,
   Clock,
   Download,
+  Loader2,
   Plane,
   QrCode,
   Ticket,
@@ -23,18 +25,98 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase/client"
-import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
 import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  pastBookings,
   statusLabels,
-  upcomingBookings,
   type Booking,
   type BookingStatus,
 } from "@/lib/mockBookingsPage"
+import {
+  isUpcomingTrip,
+  resolveBookingImage,
+  tripToBooking,
+  type Trip,
+} from "@/lib/tripBooking"
 import { cn } from "@/lib/utils"
-import { useEffect } from "react"
+
+function StatCardSkeleton() {
+  return (
+    <Card className="rounded-2xl border-border/60">
+      <CardContent className="flex items-center gap-4 p-5">
+        <Skeleton className="size-11 rounded-xl" />
+        <div className="space-y-2">
+          <Skeleton className="h-8 w-10" />
+          <Skeleton className="h-4 w-20" />
+        </div>
+      </CardContent>
+    </Card>
+  )
+}
+
+function BookingCardSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-2xl border-border/60 shadow-sm">
+      <div className="flex flex-col sm:flex-row">
+        <Skeleton className="h-36 w-full shrink-0 rounded-none sm:h-auto sm:min-h-[11rem] sm:w-44" />
+        <div className="flex flex-1 flex-col gap-4 p-6">
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-1 items-center gap-2">
+              <Skeleton className="size-8 rounded-lg" />
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-28" />
+              </div>
+            </div>
+            <div className="space-y-2 text-right">
+              <Skeleton className="ml-auto h-3 w-8" />
+              <Skeleton className="h-4 w-20" />
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Skeleton className="h-4 w-32" />
+            <Skeleton className="h-4 w-24" />
+          </div>
+          <Skeleton className="h-px w-full" />
+          <div className="flex gap-2">
+            <Skeleton className="size-7 rounded-full" />
+            <Skeleton className="size-7 rounded-full" />
+            <Skeleton className="size-7 rounded-full" />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Skeleton className="h-14 w-36 rounded-xl" />
+            <Skeleton className="h-9 w-32 rounded-xl" />
+            <Skeleton className="h-9 w-32 rounded-xl" />
+          </div>
+        </div>
+      </div>
+    </Card>
+  )
+}
+
+function BookingsLoadingView() {
+  return (
+    <div className="space-y-8">
+      <div className="grid gap-4 sm:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <StatCardSkeleton key={i} />
+        ))}
+      </div>
+
+      <div className="space-y-4">
+        <Skeleton className="h-11 w-64 rounded-xl" />
+        <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 py-4 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin text-primary" />
+          Loading your bookings…
+        </div>
+        <BookingCardSkeleton />
+        <BookingCardSkeleton />
+      </div>
+    </div>
+  )
+}
+
 function statusBadgeClass(status: BookingStatus) {
   switch (status) {
     case "confirmed":
@@ -44,6 +126,11 @@ function statusBadgeClass(status: BookingStatus) {
     case "cancelled":
       return "bg-destructive/10 text-destructive border-destructive/20"
   }
+}
+
+function buildBookingHref(booking: Booking) {
+  const imageSrc = resolveBookingImage(booking)
+  return `/my-bookings/${booking.id}?data=${encodeURIComponent(JSON.stringify(booking))}&image=${encodeURIComponent(imageSrc)}`
 }
 
 function BookingIcon({ type }: { type: Booking["type"] }) {
@@ -88,12 +175,18 @@ function BookingTimeline({ booking }: { booking: Booking }) {
 }
 
 function BookingCard({ booking }: { booking: Booking }) {
+  const detailHref = buildBookingHref(booking)
+  const imageSrc = resolveBookingImage(booking)
+
   return (
     <Card className="overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:shadow-md">
       <div className="flex flex-col sm:flex-row">
-        <div className="relative h-36 w-full shrink-0 sm:h-auto sm:w-44">
+        <Link
+          href={detailHref}
+          className="relative h-36 w-full shrink-0 sm:h-auto sm:w-44"
+        >
           <AppImage
-            src={booking.image}
+            src={imageSrc}
             alt={booking.title}
             className="size-full object-cover"
           />
@@ -105,7 +198,7 @@ function BookingCard({ booking }: { booking: Booking }) {
           >
             {statusLabels[booking.status]}
           </Badge>
-        </div>
+        </Link>
 
         <div className="flex flex-1 flex-col">
           <CardHeader className="gap-1 pb-2">
@@ -161,8 +254,8 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <Download className="size-3.5" />
                 Download invoice
               </Button>
-              <Button size="sm" className="rounded-xl">
-                Manage booking
+              <Button size="sm" className="rounded-xl" asChild>
+                <Link href={detailHref}>Manage booking</Link>
               </Button>
             </div>
           </CardContent>
@@ -172,36 +265,61 @@ function BookingCard({ booking }: { booking: Booking }) {
   )
 }
 
+function EmptyBookings({ message }: { message: string }) {
+  return (
+    <Card className="border-dashed py-12 text-center">
+      <CardContent>
+        <Plane className="mx-auto size-10 text-muted-foreground/60" />
+        <p className="mt-3 font-medium">{message}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
 function MyBookingsPage() {
   const [tab, setTab] = useState("upcoming")
+  const [upcoming, setUpcoming] = useState<Booking[]>([])
+  const [past, setPast] = useState<Booking[]>([])
+  const [loaded, setLoaded] = useState(false)
+
   useEffect(() => {
     const fetchBookings = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        return
-      }
-      const user_id = user.id
-const { data, error } = await supabase
-  .from("trips")
-  .select("*")
-  .eq("user_id", user_id);
-      if (error) {
-        console.error(error)
-        return
-      }
-      const bookings = data?.map((booking: any) => {
-        return {
-          id: booking.id,
-          type: booking.type,
-          title: booking.title,
-          subtitle: booking.subtitle,
-          reference: booking.reference,
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
+        if (!user) return
+
+        const { data, error } = await supabase
+          .from("trips")
+          .select("*")
+          .eq("user_id", user.id)
+
+        if (error) {
+          console.error(error)
+          return
         }
-      })
-      console.log(bookings)
+
+        const rows = (data ?? []) as Trip[]
+        setUpcoming(
+          rows.filter((trip) => isUpcomingTrip(trip.departure)).map(tripToBooking)
+        )
+        setPast(
+          rows.filter((trip) => !isUpcomingTrip(trip.departure)).map(tripToBooking)
+        )
+      } finally {
+        setLoaded(true)
+      }
     }
-    fetchBookings()
+
+    void fetchBookings()
   }, [])
+
+  const bookings = useMemo(() => [...upcoming, ...past], [upcoming, past])
+
+  const confirmedCount = bookings.filter((b) => b.status === "confirmed").length
+  const pendingCount = bookings.filter((b) => b.status === "pending").length
+
   return (
     <DashboardShell>
       <div className="mx-auto max-w-6xl space-y-8">
@@ -215,11 +333,15 @@ const { data, error } = await supabase
           </p>
         </div>
 
+        {!loaded ? (
+          <BookingsLoadingView />
+        ) : (
+          <>
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Upcoming", value: upcomingBookings.length, icon: Plane },
-            { label: "Confirmed", value: 2, icon: Check },
-            { label: "Pending", value: 1, icon: Clock },
+            { label: "Upcoming", value: upcoming.length, icon: Plane },
+            { label: "Confirmed", value: confirmedCount, icon: Check },
+            { label: "Pending", value: pendingCount, icon: Clock },
           ].map((stat) => {
             const Icon = stat.icon
             return (
@@ -241,25 +363,35 @@ const { data, error } = await supabase
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="h-11 rounded-xl bg-muted/70 p-1">
             <TabsTrigger value="upcoming" className="rounded-lg px-4">
-              Upcoming ({upcomingBookings.length})
+              Upcoming ({upcoming.length})
             </TabsTrigger>
             <TabsTrigger value="past" className="rounded-lg px-4">
-              Past ({pastBookings.length})
+              Past ({past.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upcoming" className="mt-6 space-y-4">
-            {upcomingBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
-            ))}
+            {upcoming.length === 0 ? (
+              <EmptyBookings message="No upcoming bookings" />
+            ) : (
+              upcoming.map((booking) => (
+                <BookingCard key={booking.id} booking={booking} />
+              ))
+            )}
           </TabsContent>
 
           <TabsContent value="past" className="mt-6 space-y-4">
-            {pastBookings.map((booking) => (
-              <BookingCard key={booking.id} booking={booking} />
-            ))}
+            {past.length === 0 ? (
+              <EmptyBookings message="No past bookings" />
+            ) : (
+              past.map((booking) => (
+                <BookingCard key={booking.id} booking={booking} />
+              ))
+            )}
           </TabsContent>
         </Tabs>
+          </>
+        )}
       </div>
     </DashboardShell>
   )

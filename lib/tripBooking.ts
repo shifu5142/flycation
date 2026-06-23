@@ -62,7 +62,13 @@ export function formatTripDate(date: string) {
 export function toBookingStatus(status: string | null): BookingStatus {
   const normalized = status?.toLowerCase() ?? "booking"
   if (normalized === "cancelled") return "cancelled"
-  if (normalized === "confirmed" || normalized === "completed") return "confirmed"
+  if (
+    normalized === "confirmed" ||
+    normalized === "completed" ||
+    normalized === "booked"
+  ) {
+    return "confirmed"
+  }
   return "pending"
 }
 
