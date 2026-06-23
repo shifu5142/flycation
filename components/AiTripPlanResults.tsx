@@ -47,7 +47,15 @@ import {
   type AiGeneratedTripPlan,
 } from "@/lib/aiGeneratedTripPlanTypes"
 import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
+import { getStaticCountryImagePath } from "@/lib/countryStaticImages"
+import { isPlaceholderImageUrl } from "@/lib/tripBooking"
 import { AppImage } from "@/components/AppImage"
+
+function resolveInitialHeroImage(plan: AiGeneratedTripPlan) {
+  const stored = plan.hero.image?.trim()
+  if (stored && !isPlaceholderImageUrl(stored)) return stored
+  return getStaticCountryImagePath(plan.hero.country || plan.hero.destination)
+}
 
 function ActivityTypeIcon({
   type,
@@ -189,7 +197,9 @@ export function AiTripPlanResults({
   handleSave?: () => void | Promise<void>
   onStartOver?: () => void
 }) {
-  const [heroImageUrl, setHeroImageUrl] = useState(plan.hero.image)
+  const [heroImageUrl, setHeroImageUrl] = useState(() =>
+    resolveInitialHeroImage(plan)
+  )
   const budgetTotal = parsePriceAmount(plan.budgetBreakdown.total)
   const heroImageContain = heroImageFit === "contain"
   const heroDestinationMatchesCountry =
@@ -197,19 +207,19 @@ export function AiTripPlanResults({
     plan.hero.country.trim().toLowerCase()
 
   useEffect(() => {
-    setHeroImageUrl(plan.hero.image)
-
-    if (readOnly) return
+    setHeroImageUrl(resolveInitialHeroImage(plan))
 
     const loadCountryImage = async () => {
-      if (!plan.hero.country?.trim()) return
+      const country = plan.hero.country?.trim()
+      const destination = plan.hero.destination?.trim()
+      if (!country && !destination) return
 
-      const url = await fetchCountryImageUrl(plan.hero.country, plan.hero.destination)
+      const url = await fetchCountryImageUrl(country, destination)
       if (url) setHeroImageUrl(url)
     }
 
-    loadCountryImage()
-  }, [plan.hero.country, plan.hero.destination, plan.hero.image, readOnly])
+    void loadCountryImage()
+  }, [plan.hero.country, plan.hero.destination, plan.hero.image])
 
   const budgetRows = [
     { label: "Flights", value: plan.budgetBreakdown.flights, icon: Plane },

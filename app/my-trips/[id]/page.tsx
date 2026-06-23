@@ -1,8 +1,8 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, CalendarDays, MapPin, Sparkles, Trash2 } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
@@ -26,6 +26,8 @@ import {
   toAiGeneratedTripPlan,
   type TripsPlanRow,
 } from "@/lib/tripsPlan"
+import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
+import { isPlaceholderImageUrl } from "@/lib/tripBooking"
 import { useToast } from "@/components/ToastProvider"
 
 function TripPlanSkeleton() {
@@ -44,7 +46,9 @@ function TripPlanSkeleton() {
 
 function MyTripPlanPage() {
   const params = useParams<{ id: string }>()
+  const searchParams = useSearchParams()
   const tripId = params.id
+  const cardImageParam = searchParams.get("image")
 
   const [loading, setLoading] = useState(true)
   const [tripPlan, setTripPlan] = useState<TripsPlanRow | null>(null)
@@ -83,7 +87,26 @@ function MyTripPlanPage() {
         if (error) throw error
         setTripPlan(tripData as TripsPlanRow)
 
-        setPlan(toAiGeneratedTripPlan(tripData))
+        const nextPlan = toAiGeneratedTripPlan(tripData as TripsPlanRow)
+        const cardImage =
+          cardImageParam?.trim() && !isPlaceholderImageUrl(cardImageParam)
+            ? cardImageParam
+            : null
+
+        if (cardImage) {
+          nextPlan.hero.image = cardImage
+        } else if (
+          !nextPlan.hero.image?.trim() ||
+          isPlaceholderImageUrl(nextPlan.hero.image)
+        ) {
+          const imageUrl = await fetchCountryImageUrl(
+            nextPlan.hero.country,
+            nextPlan.hero.destination
+          )
+          if (imageUrl) nextPlan.hero.image = imageUrl
+        }
+
+        setPlan(nextPlan)
       } catch (error) {
         console.error("Failed to load trip plan:", error)
         setTripPlan(null)
@@ -94,7 +117,18 @@ function MyTripPlanPage() {
     }
 
     fetchTripPlan()
-  }, [tripId])
+  }, [tripId, cardImageParam])
+
+  const displayPlan = useMemo(() => {
+    if (!plan) return null
+    if (!cardImageParam?.trim() || isPlaceholderImageUrl(cardImageParam)) {
+      return plan
+    }
+    return {
+      ...plan,
+      hero: { ...plan.hero, image: cardImageParam },
+    }
+  }, [plan, cardImageParam])
 
   const createdLabel = tripPlan?.created_at
     ? new Date(tripPlan.created_at).toLocaleDateString(undefined, {
@@ -124,7 +158,7 @@ function MyTripPlanPage() {
 
         {loading ? (
           <TripPlanSkeleton />
-        ) : !tripPlan || !plan ? (
+        ) : !tripPlan || !displayPlan ? (
           <Card className="border-dashed py-16 text-center">
             <CardContent>
               <MapPin className="mx-auto size-10 text-muted-foreground/60" />
@@ -171,7 +205,7 @@ function MyTripPlanPage() {
 
             <Separator />
 
-            <AiTripPlanResults plan={plan} readOnly />
+            <AiTripPlanResults plan={displayPlan} readOnly />
 
             <div className="flex justify-end">
               <Button

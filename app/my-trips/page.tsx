@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
-import { CalendarDays, MapPin, Plus, Sparkles } from "lucide-react"
+import { CalendarDays, Loader2, MapPin, Plus, Sparkles } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
 import { Badge } from "@/components/ui/badge"
@@ -17,6 +17,7 @@ import {
 import { supabase } from "@/lib/supabase/client"
 import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
 import { AppImage } from "@/components/AppImage"
+import { Skeleton } from "@/components/ui/skeleton"
 
 type TripPlan = {
   id: string
@@ -82,10 +83,48 @@ function TripPlanCard({ trip }: { trip: TripPlan }) {
           {trip.summary || "No summary available."}
         </p>
         <Button variant="outline" className="w-full rounded-xl" size="sm" asChild>
-          <Link href={`/my-trips/${trip.id}`}>View trip</Link>
+          <Link
+            href={`/my-trips/${trip.id}?image=${encodeURIComponent(imageSrc)}`}
+          >
+            View trip
+          </Link>
         </Button>
       </CardContent>
     </Card>
+  )
+}
+
+function TripPlanCardSkeleton() {
+  return (
+    <Card className="overflow-hidden rounded-2xl border-border/60 shadow-sm">
+      <Skeleton className="h-40 w-full rounded-none" />
+      <CardHeader className="gap-2 pb-2">
+        <Skeleton className="h-6 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </CardHeader>
+      <CardContent className="space-y-3 pt-0">
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-full" />
+        <Skeleton className="h-4 w-2/3" />
+        <Skeleton className="h-9 w-full rounded-xl" />
+      </CardContent>
+    </Card>
+  )
+}
+
+function TripsLoadingView() {
+  return (
+    <div className="space-y-5">
+      <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 py-4 text-sm text-muted-foreground">
+        <Loader2 className="size-4 animate-spin text-primary" />
+        Loading your trips…
+      </div>
+      <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <TripPlanCardSkeleton key={i} />
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -104,36 +143,39 @@ function EmptyTrips({ message }: { message: string }) {
 }
 
 function MyTripsPage() {
-  const [trips, setTrips] = useState<TripPlan[] | null>(null)
+  const [trips, setTrips] = useState<TripPlan[]>([])
+  const [loaded, setLoaded] = useState(false)
 
   useEffect(() => {
     const fetchTrips = async () => {
-      const { data, error } = await supabase
-        .from("trips_plan")
-        .select("*")
-      if (error) {
-        console.error(error)
-        return
+      try {
+        const { data, error } = await supabase.from("trips_plan").select("*")
+        if (error) {
+          console.error(error)
+          return
+        }
+
+        const tripPlans = (data ?? []).map((row: Record<string, unknown>) =>
+          toTripPlan(row)
+        )
+
+        const tripsWithImages = await Promise.all(
+          tripPlans.map(async (trip: TripPlan) => {
+            const imageUrl = await fetchCountryImageUrl(
+              trip.country,
+              trip.destination
+            )
+            return {
+              ...trip,
+              image: imageUrl || trip.image,
+            }
+          })
+        )
+
+        setTrips(tripsWithImages)
+      } finally {
+        setLoaded(true)
       }
-
-      const tripPlans = (data ?? []).map((row: Record<string, unknown>) =>
-        toTripPlan(row)
-      )
-
-      const tripsWithImages = await Promise.all(
-        tripPlans.map(async (trip: TripPlan) => {
-          const imageUrl = await fetchCountryImageUrl(
-            trip.country,
-            trip.destination
-          )
-          return {
-            ...trip,
-            image: imageUrl || trip.image,
-          }
-        })
-      )
-
-      setTrips(tripsWithImages)
     }
     fetchTrips()
   }, [])
@@ -159,7 +201,9 @@ function MyTripsPage() {
           </Link>
         </div>
 
-        {trips === null ? null : trips.length === 0 ? (
+        {!loaded ? (
+          <TripsLoadingView />
+        ) : trips.length === 0 ? (
           <EmptyTrips message="There are no trips" />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">

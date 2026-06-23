@@ -1,13 +1,11 @@
 "use client"
 
-import { useEffect, useMemo, useState } from "react"
-import Link from "next/link"
+import { useState } from "react"
 import {
   Building2,
   Check,
   Clock,
   Download,
-  Loader2,
   Plane,
   QrCode,
   Ticket,
@@ -25,22 +23,28 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { supabase } from "@/lib/supabase/client"
-import {
-  isUpcomingTrip,
-  statusBadgeClass,
-  toBookingStatus,
-  tripToBooking,
-  type Trip,
-} from "@/lib/tripBooking"
+import { fetchCountryImageUrl } from "@/lib/fetchCountryImage"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
+  pastBookings,
   statusLabels,
+  upcomingBookings,
   type Booking,
   type BookingStatus,
 } from "@/lib/mockBookingsPage"
 import { cn } from "@/lib/utils"
+import { useEffect } from "react"
+function statusBadgeClass(status: BookingStatus) {
+  switch (status) {
+    case "confirmed":
+      return "bg-emerald-500/15 text-emerald-700 border-emerald-500/30 dark:text-emerald-400"
+    case "pending":
+      return "bg-amber-500/15 text-amber-700 border-amber-500/30 dark:text-amber-400"
+    case "cancelled":
+      return "bg-destructive/10 text-destructive border-destructive/20"
+  }
+}
 
 function BookingIcon({ type }: { type: Booking["type"] }) {
   if (type === "flight") return <Plane className="size-4" />
@@ -79,73 +83,6 @@ function BookingTimeline({ booking }: { booking: Booking }) {
           )}
         </div>
       ))}
-    </div>
-  )
-}
-
-function StatCardSkeleton() {
-  return (
-    <Card className="rounded-2xl border-border/60">
-      <CardContent className="flex items-center gap-4 p-5">
-        <Skeleton className="size-11 rounded-xl" />
-        <div className="space-y-2">
-          <Skeleton className="h-8 w-10" />
-          <Skeleton className="h-4 w-20" />
-        </div>
-      </CardContent>
-    </Card>
-  )
-}
-
-function BookingCardSkeleton() {
-  return (
-    <Card className="overflow-hidden rounded-2xl border-border/60 shadow-sm">
-      <div className="flex flex-col sm:flex-row">
-        <Skeleton className="h-36 w-full shrink-0 rounded-none sm:h-auto sm:min-h-[11rem] sm:w-44" />
-        <div className="flex flex-1 flex-col gap-4 p-6">
-          <div className="flex items-start justify-between gap-4">
-            <div className="flex flex-1 items-center gap-2">
-              <Skeleton className="size-8 rounded-lg" />
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-40" />
-                <Skeleton className="h-4 w-28" />
-              </div>
-            </div>
-            <div className="space-y-2 text-right">
-              <Skeleton className="ml-auto h-3 w-8" />
-              <Skeleton className="h-4 w-20" />
-            </div>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Skeleton className="h-4 w-32" />
-            <Skeleton className="h-4 w-24" />
-          </div>
-          <Skeleton className="h-px w-full" />
-          <div className="flex gap-2">
-            <Skeleton className="size-7 rounded-full" />
-            <Skeleton className="size-7 rounded-full" />
-            <Skeleton className="size-7 rounded-full" />
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Skeleton className="h-14 w-36 rounded-xl" />
-            <Skeleton className="h-9 w-32 rounded-xl" />
-            <Skeleton className="h-9 w-32 rounded-xl" />
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
-function BookingsListSkeleton() {
-  return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 py-4 text-sm text-muted-foreground">
-        <Loader2 className="size-4 animate-spin text-primary" />
-        Loading your bookings…
-      </div>
-      <BookingCardSkeleton />
-      <BookingCardSkeleton />
     </div>
   )
 }
@@ -224,12 +161,8 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <Download className="size-3.5" />
                 Download invoice
               </Button>
-              <Button size="sm" className="rounded-xl" asChild>
-                <Link
-                  href={`/my-bookings/${booking.id}?data=${encodeURIComponent(JSON.stringify(booking))}`}
-                >
-                  Manage booking
-                </Link>
+              <Button size="sm" className="rounded-xl">
+                Manage booking
               </Button>
             </div>
           </CardContent>
@@ -241,56 +174,34 @@ function BookingCard({ booking }: { booking: Booking }) {
 
 function MyBookingsPage() {
   const [tab, setTab] = useState("upcoming")
-  const [bookings, setBookings] = useState<Trip[]>([])
-  const [loaded, setLoaded] = useState(false)
-
   useEffect(() => {
     const fetchBookings = async () => {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser()
+      const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
-        setLoaded(true)
         return
       }
-
-      const { data, error } = await supabase
-        .from("trips")
-        .select("*")
-        .eq("user_id", user.id)
-
+      const user_id = user.id
+const { data, error } = await supabase
+  .from("trips")
+  .select("*")
+  .eq("user_id", user_id);
       if (error) {
         console.error(error)
-        setLoaded(true)
         return
       }
-
-      setBookings((data ?? []) as Trip[])
-      setLoaded(true)
+      const bookings = data?.map((booking: any) => {
+        return {
+          id: booking.id,
+          type: booking.type,
+          title: booking.title,
+          subtitle: booking.subtitle,
+          reference: booking.reference,
+        }
+      })
+      console.log(bookings)
     }
-
     fetchBookings()
   }, [])
-
-  const upcomingBookings = useMemo(
-    () => bookings.filter((trip) => isUpcomingTrip(trip.departure)).map(tripToBooking),
-    [bookings]
-  )
-
-  const pastBookings = useMemo(
-    () => bookings.filter((trip) => !isUpcomingTrip(trip.departure)).map(tripToBooking),
-    [bookings]
-  )
-
-  const confirmedCount = useMemo(
-    () => bookings.filter((trip) => toBookingStatus(trip.booking_status) === "confirmed").length,
-    [bookings]
-  )
-
-  const pendingCount = useMemo(
-    () => bookings.filter((trip) => toBookingStatus(trip.booking_status) === "pending").length,
-    [bookings]
-  )
   return (
     <DashboardShell>
       <div className="mx-auto max-w-6xl space-y-8">
@@ -305,14 +216,10 @@ function MyBookingsPage() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-3">
-          {!loaded
-            ? Array.from({ length: 3 }).map((_, index) => (
-                <StatCardSkeleton key={index} />
-              ))
-            : [
+          {[
             { label: "Upcoming", value: upcomingBookings.length, icon: Plane },
-            { label: "Confirmed", value: confirmedCount, icon: Check },
-            { label: "Pending", value: pendingCount, icon: Clock },
+            { label: "Confirmed", value: 2, icon: Check },
+            { label: "Pending", value: 1, icon: Clock },
           ].map((stat) => {
             const Icon = stat.icon
             return (
@@ -342,41 +249,15 @@ function MyBookingsPage() {
           </TabsList>
 
           <TabsContent value="upcoming" className="mt-6 space-y-4">
-            {!loaded ? (
-              <BookingsListSkeleton />
-            ) : upcomingBookings.length === 0 ? (
-              <Card className="rounded-2xl border-dashed py-12 text-center">
-                <CardContent>
-                  <p className="font-medium">No upcoming bookings</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Book a flight from your dashboard to see it here
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              upcomingBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))
-            )}
+            {upcomingBookings.map((booking) => (
+              <BookingCard key={booking.id} booking={booking} />
+            ))}
           </TabsContent>
 
           <TabsContent value="past" className="mt-6 space-y-4">
-            {!loaded ? (
-              <BookingsListSkeleton />
-            ) : pastBookings.length === 0 ? (
-              <Card className="rounded-2xl border-dashed py-12 text-center">
-                <CardContent>
-                  <p className="font-medium">No past bookings</p>
-                  <p className="mt-1 text-sm text-muted-foreground">
-                    Completed trips will appear here
-                  </p>
-                </CardContent>
-              </Card>
-            ) : (
-              pastBookings.map((booking) => (
-                <BookingCard key={booking.id} booking={booking} />
-              ))
-            )}
+            {pastBookings.map((booking) => (
+              <BookingCard key={booking.id} booking={booking} />
+            ))}
           </TabsContent>
         </Tabs>
       </div>
