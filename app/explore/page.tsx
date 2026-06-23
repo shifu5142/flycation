@@ -37,6 +37,7 @@ import {
 } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Skeleton } from "@/components/ui/skeleton"
 import {
   explorePriceRanges,
   exploreRegions,
@@ -276,9 +277,13 @@ function LinkCard({
 function CountryProfileExplorer({
   country,
   imageUrl,
+  imageLoading = false,
+  onImageReady,
 }: {
   country: ApiCountry
   imageUrl?: string
+  imageLoading?: boolean
+  onImageReady?: () => void
 }) {
   const name = countryName(country)
   const languages = Array.isArray(country.languages)
@@ -310,8 +315,10 @@ function CountryProfileExplorer({
             fill
             className="object-cover"
             wrapperClassName="absolute inset-0 z-0"
+            onLoad={onImageReady}
+            onError={onImageReady}
           />
-        ) : (
+        ) : !imageLoading ? (
           <CountryImage
             country={name}
             alt={name}
@@ -319,6 +326,9 @@ function CountryProfileExplorer({
             wrapperClassName="absolute inset-0 z-0"
             className="object-cover"
           />
+        ) : null}
+        {imageLoading && (
+          <Skeleton className="absolute inset-0 z-[1] size-full rounded-none" />
         )}
         <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/20" />
         <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
@@ -827,6 +837,7 @@ function ExplorePage() {
   const [apiCountries, setApiCountries] = useState<ApiCountry[]>([])
   const [apiMeta, setApiMeta] = useState<ApiMeta | null>(null)
   const [imgUrl, setimgUrl] = useState<string>("")
+  const [heroImageLoading, setHeroImageLoading] = useState(false)
   const filterResults = useMemo(
     () => getExploreResults(region, season, price),
     [region, season, price]
@@ -862,6 +873,7 @@ function ExplorePage() {
     setApiCountries([])
     setApiMeta(null)
     setimgUrl("")
+    setHeroImageLoading(false)
   }, [region, season, price])
 
   const handleExploreNow = async () => {
@@ -877,6 +889,8 @@ function ExplorePage() {
       price,
     }
     setIsExploring(true)
+    setHeroImageLoading(true)
+    setimgUrl("")
     try {
       const res = await fetch("/api/Explore", {
         method: "POST",
@@ -913,8 +927,13 @@ function ExplorePage() {
 
       if (nextImageUrl) {
         setimgUrl(nextImageUrl)
+      } else {
+        setHeroImageLoading(false)
       }
       toast("Trip plan generated successfully", "success")
+    } catch (error) {
+      console.error(error)
+      setHeroImageLoading(false)
     } finally {
       setIsExploring(false)
     }
@@ -1116,6 +1135,8 @@ function ExplorePage() {
                       key={country.uuid ?? country.codes?.alpha_2 ?? countryName(country) ?? i}
                       country={country}
                       imageUrl={imgUrl}
+                      imageLoading={heroImageLoading}
+                      onImageReady={() => setHeroImageLoading(false)}
                     />
                   ))}
                 </div>
