@@ -1,22 +1,29 @@
 "use client"
 
-import { useMemo, useState, useEffect } from "react"
+import { useMemo, useState, useEffect, type ReactNode } from "react"
 import {
   Building2,
+  Car,
   Coins,
   Compass,
   ExternalLink,
   Filter,
+  Globe,
+  Hash,
+  Landmark,
   Languages,
+  Link2,
   Loader2,
   MapPin,
   Search,
   SlidersHorizontal,
   Star,
   TrendingUp,
+  Users,
 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
+import { AppImage } from "@/components/AppImage"
 import { CountryImage } from "@/components/CountryImage"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -40,121 +47,729 @@ import { getStaticCountryImagePath } from "@/lib/countryStaticImages"
 import { getExploreResults } from "@/lib/exploreFilterResults"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ToastProvider"
+import { supabase } from "@/lib/supabase/client"
+
+type ApiMeta = {
+  count?: number
+  duration?: number
+  limit?: number
+  more?: boolean
+  offset?: number
+  request_id?: string
+  total?: number
+}
 
 type ApiCountry = {
+  uuid?: string
+  names?: {
+    common?: string
+    official?: string
+    alternates?: string[]
+    native?: Record<string, { common?: string; official?: string }>
+    translations?: Record<string, { common?: string; official?: string }>
+  }
   name?: { common?: string }
-  names?: { common?: string }
+  flag?: {
+    emoji?: string
+    description?: string
+    unicode?: string
+    url_png?: string
+    colors?: Record<string, string>
+  }
   flags?: { png?: string }
-  flag?: { url_png?: string }
   region?: string
   subregion?: string
+  continents?: string[]
+  coordinates?: { lat?: number; lng?: number }
+  area?: { kilometers?: number; miles?: number }
+  landlocked?: boolean
+  borders?: string[]
   capital?: string[]
-  capitals?: { name?: string }[]
-  languages?: Record<string, string> | { name?: string }[]
+  capitals?: { name?: string; coordinates?: { lat?: number; lng?: number } }[]
+  languages?: Record<string, string> | { name?: string; code?: string }[]
+  demonyms?: Record<string, { m?: string; f?: string }>
   currencies?:
     | Record<string, { name?: string; symbol?: string }>
     | { code?: string; symbol?: string; name?: string }[]
   population?: number
+  government_type?: string
+  leaders?: { name?: string; role?: string }[]
+  classification?: Record<string, boolean | string>
+  memberships?: Record<string, boolean>
+  codes?: {
+    alpha_2?: string
+    alpha_3?: string
+    ccn3?: string
+    cioc?: string
+    fifa?: string
+  }
+  calling_codes?: string[]
+  tlds?: string[]
+  postal_code?: { format?: string; regex?: string }
+  timezones?: string[]
+  links?: {
+    google_maps?: string
+    wikipedia?: string
+    official?: string
+    open_street_maps?: string
+  }
   maps?: { googleMaps?: string }
-  links?: { google_maps?: string }
-  codes?: { alpha_2?: string }
+  cars?: { driving_side?: string; signs?: string[] }
+  date?: {
+    start_of_week?: string
+    fiscal_year_start?: Record<string, number>
+    academic_year_start?: Record<string, number>
+  }
+  economy?: { gini_coefficient?: { year?: number; value?: number } }
+  number_format?: { decimal_separator?: string; thousands_separator?: string }
+  parent?: { alpha_2?: string; alpha_3?: string }
+  assets?: unknown[]
+  _match?: unknown[]
+  _meta?: { lastUpdatedTimestamp?: number }
+}
+
+function countryName(country: ApiCountry) {
+  return country.names?.common ?? country.name?.common ?? "Unknown"
+}
+
+function formatNumber(value?: number) {
+  if (value == null) return "—"
+  return value.toLocaleString("en-US")
+}
+
+function InfoChip({ children }: { children: ReactNode }) {
+  return (
+    <span className="inline-flex items-center rounded-full border border-border/70 bg-background px-2.5 py-1 text-xs font-medium text-foreground shadow-sm">
+      {children}
+    </span>
+  )
+}
+
+function StatTile({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Globe
+  label: string
+  value?: ReactNode
+}) {
+  return (
+    <div className="group relative overflow-hidden rounded-2xl border border-border/60 bg-card p-4 shadow-sm transition-shadow hover:shadow-md">
+      <div className="absolute -right-3 -top-3 size-16 rounded-full bg-primary/5 transition-transform group-hover:scale-110" />
+      <div className="relative flex items-start gap-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-primary/10 text-primary">
+          <Icon className="size-4" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-[11px] font-semibold tracking-wide text-muted-foreground uppercase">
+            {label}
+          </p>
+          <p className="mt-1 text-sm leading-snug font-semibold">{value ?? "—"}</p>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function DataRow({ label, value }: { label: string; value?: ReactNode }) {
+  if (value == null || value === "" || value === "—") return null
+  return (
+    <div className="grid gap-1 border-b border-border/35 px-3 py-2.5 last:border-0 sm:grid-cols-[minmax(7rem,34%)_1fr] sm:items-start sm:gap-4 even:bg-muted/25">
+      <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+      <dd className="text-sm font-medium text-foreground">{value}</dd>
+    </div>
+  )
+}
+
+function DataList({ children, className }: { children: ReactNode; className?: string }) {
+  return (
+    <dl className={cn("overflow-hidden rounded-xl border border-border/50 bg-muted/15", className)}>
+      {children}
+    </dl>
+  )
+}
+
+function DataCategoryCard({
+  title,
+  description,
+  icon: Icon,
+  accent = "primary",
+  className,
+  children,
+}: {
+  title: string
+  description?: string
+  icon: typeof Globe
+  accent?: "primary" | "sky" | "emerald" | "amber" | "violet"
+  className?: string
+  children: ReactNode
+}) {
+  const accentStyles = {
+    primary: "from-primary/80 to-primary/30 border-primary/20",
+    sky: "from-sky-500/80 to-sky-500/30 border-sky-500/20",
+    emerald: "from-emerald-500/80 to-emerald-500/30 border-emerald-500/20",
+    amber: "from-amber-500/80 to-amber-500/30 border-amber-500/20",
+    violet: "from-violet-500/80 to-violet-500/30 border-violet-500/20",
+  }
+
+  return (
+    <Card
+      className={cn(
+        "h-full overflow-hidden rounded-2xl border-border/60 shadow-sm",
+        className
+      )}
+    >
+      <div className={cn("h-1 bg-gradient-to-r", accentStyles[accent])} />
+      <CardHeader className="space-y-1 pb-2">
+        <CardTitle className="flex items-center gap-2.5 text-base">
+          <span className="flex size-9 items-center justify-center rounded-xl bg-muted text-primary ring-1 ring-border/60">
+            <Icon className="size-4" />
+          </span>
+          <span>{title}</span>
+        </CardTitle>
+        {description && (
+          <CardDescription className="pl-[2.875rem]">{description}</CardDescription>
+        )}
+      </CardHeader>
+      <CardContent className="pt-0">{children}</CardContent>
+    </Card>
+  )
+}
+
+function SectionHeading({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex items-center gap-3 pt-2">
+      <h4 className="text-xs font-bold tracking-[0.14em] text-muted-foreground uppercase">
+        {children}
+      </h4>
+      <div className="h-px flex-1 bg-border/70" />
+    </div>
+  )
+}
+
+function LinkCard({
+  href,
+  label,
+  icon: Icon,
+}: {
+  href: string
+  label: string
+  icon: typeof ExternalLink
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="group flex items-center gap-3 rounded-xl border border-border/60 bg-muted/20 px-4 py-3 transition-all hover:border-primary/30 hover:bg-primary/5 hover:shadow-sm"
+    >
+      <span className="flex size-9 items-center justify-center rounded-lg bg-background text-primary ring-1 ring-border/50 transition-colors group-hover:bg-primary group-hover:text-primary-foreground">
+        <Icon className="size-4" />
+      </span>
+      <span className="flex-1 text-sm font-medium">{label}</span>
+      <ExternalLink className="size-3.5 text-muted-foreground opacity-0 transition-opacity group-hover:opacity-100" />
+    </a>
+  )
+}
+
+function CountryProfileExplorer({
+  country,
+  imageUrl,
+}: {
+  country: ApiCountry
+  imageUrl?: string
+}) {
+  const name = countryName(country)
+  const languages = Array.isArray(country.languages)
+    ? country.languages.map((l) => l.name ?? l.code).filter(Boolean)
+    : Object.entries(country.languages ?? {}).map(([code, label]) =>
+        typeof label === "string" ? label : code
+      )
+  const currencies = Array.isArray(country.currencies)
+    ? country.currencies
+    : Object.entries(country.currencies ?? {}).map(([code, c]) => ({
+        code,
+        ...c,
+      }))
+  const activeMemberships = Object.entries(country.memberships ?? {})
+    .filter(([, active]) => active)
+    .map(([key]) => key.replace(/_/g, " "))
+  const classification = country.classification ?? {}
+  const links = country.links ?? {}
+  const mapUrl = links.google_maps ?? country.maps?.googleMaps
+
+  return (
+    <article className="overflow-hidden rounded-3xl border border-border/60 bg-card shadow-sm">
+      <div className="relative min-h-[220px] sm:min-h-[260px]">
+        {imageUrl?.trim() ? (
+          <AppImage
+            key={imageUrl}
+            src={imageUrl.trim()}
+            alt={name}
+            fill
+            className="object-cover"
+            wrapperClassName="absolute inset-0 z-0"
+          />
+        ) : (
+          <CountryImage
+            country={name}
+            alt={name}
+            fill
+            wrapperClassName="absolute inset-0 z-0"
+            className="object-cover"
+          />
+        )}
+        <div className="absolute inset-0 bg-gradient-to-r from-black/85 via-black/55 to-black/20" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent" />
+
+        <div className="relative z-10 flex min-h-[220px] flex-col justify-between gap-6 p-6 sm:min-h-[260px] sm:p-8">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge className="border-white/15 bg-white/10 text-white backdrop-blur-md">
+              {country.region}
+            </Badge>
+            {country.subregion && (
+              <Badge className="border-white/15 bg-white/10 text-white backdrop-blur-md">
+                {country.subregion}
+              </Badge>
+            )}
+            {country.landlocked && (
+              <Badge className="border-amber-300/30 bg-amber-400/15 text-amber-100 backdrop-blur-md">
+                Landlocked
+              </Badge>
+            )}
+          </div>
+
+          <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
+            <div className="flex items-end gap-4">
+              <span className="text-5xl leading-none drop-shadow-lg sm:text-6xl">
+                {country.flag?.emoji ?? "🌍"}
+              </span>
+              <div className="text-white">
+                <p className="text-xs font-semibold tracking-[0.2em] text-white/70 uppercase">
+                  {country.codes?.alpha_2} · {country.codes?.alpha_3}
+                </p>
+                <h3 className="mt-1 text-3xl font-bold tracking-tight sm:text-4xl">{name}</h3>
+                <p className="mt-1 max-w-xl text-sm text-white/85 sm:text-base">
+                  {country.names?.official}
+                </p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2">
+              {mapUrl && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  className="rounded-full bg-white/95 text-foreground hover:bg-white"
+                  asChild
+                >
+                  <a href={mapUrl} target="_blank" rel="noopener noreferrer">
+                    <MapPin className="size-3.5" />
+                    View map
+                  </a>
+                </Button>
+              )}
+              {links.wikipedia && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="rounded-full border-white/25 bg-white/10 text-white hover:bg-white/20 hover:text-white"
+                  asChild
+                >
+                  <a href={links.wikipedia} target="_blank" rel="noopener noreferrer">
+                    <ExternalLink className="size-3.5" />
+                    Wikipedia
+                  </a>
+                </Button>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="grid gap-3 border-b border-border/60 bg-muted/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
+        <StatTile icon={Users} label="Population" value={formatNumber(country.population)} />
+        <StatTile
+          icon={Building2}
+          label="Capital"
+          value={country.capitals?.[0]?.name ?? country.capital?.[0]}
+        />
+        <StatTile
+          icon={MapPin}
+          label="Area"
+          value={
+            country.area?.kilometers
+              ? `${formatNumber(country.area.kilometers)} km²`
+              : undefined
+          }
+        />
+        <StatTile icon={Landmark} label="Government" value={country.government_type} />
+      </div>
+
+      <div className="space-y-8 p-5 sm:p-6">
+        <SectionHeading>Identity & region</SectionHeading>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DataCategoryCard title="Overview" icon={Globe} description="Names and classification" accent="primary">
+            <DataList>
+              <DataRow label="Common name" value={country.names?.common ?? name} />
+              <DataRow label="Official name" value={country.names?.official} />
+              <DataRow label="Region" value={country.region} />
+              <DataRow label="Subregion" value={country.subregion} />
+              <DataRow label="Continents" value={country.continents?.join(", ")} />
+              <DataRow label="Government" value={country.government_type} />
+            </DataList>
+            {country.names?.alternates && country.names.alternates.length > 0 && (
+              <div className="mt-3 flex flex-wrap gap-1.5">
+                {country.names.alternates.map((alt) => (
+                  <InfoChip key={alt}>{alt}</InfoChip>
+                ))}
+              </div>
+            )}
+          </DataCategoryCard>
+
+          <DataCategoryCard title="Geography" icon={MapPin} description="Location on the map" accent="sky">
+            <DataList>
+              <DataRow
+                label="Coordinates"
+                value={
+                  country.coordinates
+                    ? `${country.coordinates.lat}°, ${country.coordinates.lng}°`
+                    : undefined
+                }
+              />
+              <DataRow
+                label="Area"
+                value={
+                  country.area
+                    ? `${formatNumber(country.area.kilometers)} km² · ${formatNumber(country.area.miles)} mi²`
+                    : undefined
+                }
+              />
+              <DataRow label="Landlocked" value={country.landlocked ? "Yes" : "No"} />
+            </DataList>
+            {country.capitals && country.capitals.length > 0 && (
+              <div className="mt-3 space-y-2">
+                <p className="text-xs font-semibold text-muted-foreground uppercase">Capitals</p>
+                {country.capitals.map((cap, i) => (
+                  <div
+                    key={cap.name ?? i}
+                    className="flex items-center justify-between rounded-lg border border-border/50 bg-background px-3 py-2 text-sm"
+                  >
+                    <span className="font-medium">{cap.name}</span>
+                    {cap.coordinates && (
+                      <span className="font-mono text-xs text-muted-foreground">
+                        {cap.coordinates.lat}°, {cap.coordinates.lng}°
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+            {country.borders && country.borders.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">Borders</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {country.borders.map((code) => (
+                    <InfoChip key={code}>{code}</InfoChip>
+                  ))}
+                </div>
+              </div>
+            )}
+            {country.timezones && country.timezones.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">Timezones</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {country.timezones.map((tz) => (
+                    <InfoChip key={tz}>{tz}</InfoChip>
+                  ))}
+                </div>
+              </div>
+            )}
+          </DataCategoryCard>
+        </div>
+
+        <SectionHeading>People, culture & economy</SectionHeading>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DataCategoryCard title="Languages & people" icon={Languages} accent="emerald">
+            {languages.length > 0 && (
+              <div className="mb-3 flex flex-wrap gap-1.5">
+                {languages.map((lang) => (
+                  <InfoChip key={lang}>{lang}</InfoChip>
+                ))}
+              </div>
+            )}
+            <DataList>
+              {country.demonyms &&
+                Object.entries(country.demonyms).map(([lang, d]) => (
+                  <DataRow
+                    key={lang}
+                    label={`Demonym (${lang})`}
+                    value={[d.m, d.f].filter(Boolean).join(" / ")}
+                  />
+                ))}
+              {country.names?.native &&
+                Object.entries(country.names.native).map(([lang, n]) => (
+                  <DataRow
+                    key={lang}
+                    label={`Native (${lang})`}
+                    value={n.common ?? n.official}
+                  />
+                ))}
+            </DataList>
+            {country.names?.translations && (
+              <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                {Object.entries(country.names.translations)
+                  .slice(0, 8)
+                  .map(([lang, t]) => (
+                    <div
+                      key={lang}
+                      className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
+                    >
+                      <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang}</p>
+                      <p className="text-sm font-medium">{t.common ?? t.official}</p>
+                    </div>
+                  ))}
+              </div>
+            )}
+          </DataCategoryCard>
+
+          <DataCategoryCard title="Economy & currency" icon={Coins} accent="amber">
+            <div className="mb-3 grid gap-2">
+              {currencies.map((c, i) => (
+                <div
+                  key={c.code ?? i}
+                  className="flex items-center justify-between rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5"
+                >
+                  <div>
+                    <p className="font-mono text-xs font-bold text-primary">{c.code ?? "—"}</p>
+                    <p className="text-sm font-medium">{c.name}</p>
+                  </div>
+                  {c.symbol && (
+                    <span className="text-lg font-semibold text-muted-foreground">{c.symbol}</span>
+                  )}
+                </div>
+              ))}
+            </div>
+            <DataList>
+              <DataRow
+                label="Gini coefficient"
+                value={
+                  country.economy?.gini_coefficient
+                    ? `${country.economy.gini_coefficient.value} (${country.economy.gini_coefficient.year})`
+                    : undefined
+                }
+              />
+              <DataRow
+                label="Number format"
+                value={
+                  country.number_format
+                    ? `Decimal "${country.number_format.decimal_separator}" · Thousands "${country.number_format.thousands_separator}"`
+                    : undefined
+                }
+              />
+            </DataList>
+          </DataCategoryCard>
+        </div>
+
+        <SectionHeading>Systems & reference</SectionHeading>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <DataCategoryCard title="Country codes" icon={Hash} accent="violet">
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Alpha-2", value: country.codes?.alpha_2 },
+                { label: "Alpha-3", value: country.codes?.alpha_3 },
+                { label: "Numeric", value: country.codes?.ccn3 },
+                { label: "IOC", value: country.codes?.cioc },
+                { label: "FIFA", value: country.codes?.fifa },
+              ].map((code) => (
+                <div
+                  key={code.label}
+                  className="rounded-xl border border-border/50 bg-muted/20 px-3 py-2 text-center"
+                >
+                  <p className="text-[10px] font-semibold text-muted-foreground uppercase">{code.label}</p>
+                  <p className="mt-0.5 font-mono text-sm font-bold">{code.value ?? "—"}</p>
+                </div>
+              ))}
+            </div>
+            <DataList className="mt-3">
+              <DataRow
+                label="Calling codes"
+                value={country.calling_codes?.map((c) => `+${c}`).join(", ")}
+              />
+              <DataRow label="TLDs" value={country.tlds?.join(", ")} />
+              <DataRow label="Postal format" value={country.postal_code?.format} />
+            </DataList>
+          </DataCategoryCard>
+
+          <DataCategoryCard title="Transport & calendar" icon={Car} accent="sky">
+            <DataList>
+              <DataRow label="Driving side" value={country.cars?.driving_side} />
+              <DataRow label="Road signs" value={country.cars?.signs?.join(", ")} />
+              <DataRow label="Week starts" value={country.date?.start_of_week} />
+              {country.date?.fiscal_year_start && (
+                <DataRow
+                  label="Fiscal year"
+                  value={Object.entries(country.date.fiscal_year_start)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(", ")}
+                />
+              )}
+              {country.date?.academic_year_start && (
+                <DataRow
+                  label="Academic year"
+                  value={Object.entries(country.date.academic_year_start)
+                    .map(([k, v]) => `${k}: ${v}`)
+                    .join(", ")}
+                />
+              )}
+            </DataList>
+          </DataCategoryCard>
+
+          <DataCategoryCard title="Classification" icon={Landmark} accent="primary" className="md:col-span-2 xl:col-span-1">
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(classification).map(([key, val]) => {
+                const isBool = typeof val === "boolean"
+                const active = isBool ? val : val !== "" && val !== "none"
+                return (
+                  <span
+                    key={key}
+                    className={cn(
+                      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-medium capitalize",
+                      active
+                        ? "border-emerald-500/30 bg-emerald-500/10 text-emerald-700 dark:text-emerald-400"
+                        : "border-border bg-muted/40 text-muted-foreground"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "size-1.5 rounded-full",
+                        active ? "bg-emerald-500" : "bg-muted-foreground/50"
+                      )}
+                    />
+                    {key.replace(/_/g, " ")}
+                    {!isBool && `: ${val}`}
+                  </span>
+                )
+              })}
+            </div>
+          </DataCategoryCard>
+        </div>
+
+        {(country.flag?.description || country.flag?.colors) && (
+          <>
+            <SectionHeading>National symbol</SectionHeading>
+            <Card className="overflow-hidden rounded-2xl border-border/60">
+              <div className="flex flex-col sm:flex-row">
+                {country.flag?.colors && (
+                  <div className="flex min-h-24 sm:min-h-0 sm:w-28 sm:flex-col">
+                    {Object.values(country.flag.colors).map((color, i) => (
+                      <div key={i} className="h-8 flex-1 sm:h-auto" style={{ backgroundColor: color }} />
+                    ))}
+                  </div>
+                )}
+                <CardContent className="flex flex-1 flex-col justify-center gap-2 p-5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-4xl">{country.flag?.emoji}</span>
+                    <div>
+                      <p className="font-semibold">Flag of {name}</p>
+                      <p className="font-mono text-xs text-muted-foreground">{country.flag?.unicode}</p>
+                    </div>
+                  </div>
+                  {country.flag?.description && (
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      {country.flag.description}
+                    </p>
+                  )}
+                </CardContent>
+              </div>
+            </Card>
+          </>
+        )}
+
+        <SectionHeading>Leadership & memberships</SectionHeading>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <DataCategoryCard title="Leaders" icon={Users} accent="primary">
+            {country.leaders?.length ? (
+              <div className="space-y-2">
+                {country.leaders.map((leader, i) => (
+                  <div
+                    key={leader.name ?? i}
+                    className="flex items-center gap-3 rounded-xl border border-border/50 bg-muted/20 px-3 py-2.5"
+                  >
+                    <span className="flex size-9 items-center justify-center rounded-full bg-primary/10 text-sm font-bold text-primary">
+                      {(leader.name ?? "?").charAt(0)}
+                    </span>
+                    <div>
+                      <p className="text-sm font-semibold">{leader.name}</p>
+                      <p className="text-xs text-muted-foreground">{leader.role ?? "Leader"}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
+                No leader data available
+              </p>
+            )}
+          </DataCategoryCard>
+
+          <DataCategoryCard title="Memberships" icon={Building2} description="International organizations" accent="emerald">
+            {activeMemberships.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {activeMemberships.map((m) => (
+                  <Badge
+                    key={m}
+                    variant="secondary"
+                    className="rounded-full px-3 py-1 capitalize"
+                  >
+                    {m}
+                  </Badge>
+                ))}
+              </div>
+            ) : (
+              <p className="rounded-xl border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
+                No active memberships listed
+              </p>
+            )}
+          </DataCategoryCard>
+        </div>
+
+        {(links.wikipedia || links.official || mapUrl || links.open_street_maps) && (
+          <>
+            <SectionHeading>Explore further</SectionHeading>
+            <div className="grid gap-3 sm:grid-cols-2">
+              {links.wikipedia && (
+                <LinkCard href={links.wikipedia} label="Wikipedia" icon={Globe} />
+              )}
+              {links.official && (
+                <LinkCard href={links.official} label="Official website" icon={Link2} />
+              )}
+              {mapUrl && <LinkCard href={mapUrl} label="Google Maps" icon={MapPin} />}
+              {links.open_street_maps && (
+                <LinkCard href={links.open_street_maps} label="OpenStreetMap" icon={MapPin} />
+              )}
+            </div>
+          </>
+        )}
+
+        {country.uuid && (
+          <p className="border-t border-border/50 pt-4 text-center font-mono text-[10px] text-muted-foreground/70">
+            {country.uuid}
+          </p>
+        )}
+      </div>
+    </article>
+  )
 }
 
 function DestinationCard({
   destination,
-  apiCountry,
   large,
 }: {
-  destination?: ExploreDestination
-  apiCountry?: ApiCountry
+  destination: ExploreDestination
   large?: boolean
 }) {
-  if (apiCountry) {
-    const mapUrl = apiCountry.maps?.googleMaps ?? apiCountry.links?.google_maps
-    const language = Array.isArray(apiCountry.languages)
-      ? apiCountry.languages[0]?.name
-      : Object.values(apiCountry.languages ?? {})[0]
-    const currency = Array.isArray(apiCountry.currencies)
-      ? apiCountry.currencies[0]
-      : Object.entries(apiCountry.currencies ?? {})[0]?.[1]
-    const currencyCode = Array.isArray(apiCountry.currencies)
-      ? apiCountry.currencies[0]?.code
-      : Object.keys(apiCountry.currencies ?? {})[0]
-    const countryName =
-      apiCountry.name?.common ?? apiCountry.names?.common ?? ""
-
-    return (
-      <Card
-        className={cn(
-          "group overflow-hidden rounded-2xl border-border/60 shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg",
-          large && "sm:col-span-2"
-        )}
-      >
-        <div className={cn("relative overflow-hidden", large ? "h-56" : "h-44")}>
-          <CountryImage
-            country={countryName}
-            src={getStaticCountryImagePath(countryName)}
-            alt={`${countryName} travel`}
-            className="transition-transform duration-500 group-hover:scale-105"
-          />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-          <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between gap-2">
-            <div className="text-white">
-              <p className="text-lg font-bold">
-                {apiCountry.name?.common ?? apiCountry.names?.common}
-              </p>
-              <p className="text-sm text-white/85">
-                {apiCountry.region}
-                {apiCountry.subregion ? ` · ${apiCountry.subregion}` : ""}
-              </p>
-            </div>
-            <Badge className="border-white/20 bg-black/40 text-white backdrop-blur-sm">
-              {apiCountry.region}
-            </Badge>
-          </div>
-        </div>
-        <CardHeader className="gap-1 pb-2">
-          <CardDescription className="line-clamp-2 text-sm">
-            <span className="inline-flex flex-wrap items-center gap-x-3 gap-y-1">
-              <span className="inline-flex items-center gap-1">
-                <Building2 className="size-3.5" />
-                {apiCountry.capital?.[0] ?? apiCountry.capitals?.[0]?.name}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Languages className="size-3.5" />
-                {language}
-              </span>
-              <span className="inline-flex items-center gap-1">
-                <Coins className="size-3.5" />
-                {currency?.symbol} {currencyCode}
-              </span>
-            </span>
-          </CardDescription>
-        </CardHeader>
-        <CardFooter className="flex items-center justify-between border-t border-border/50 pt-4">
-          <div>
-            <p className="text-xs text-muted-foreground">Population</p>
-            <p className="text-lg font-bold text-primary">{apiCountry.population}</p>
-          </div>
-          {mapUrl ? (
-            <Button asChild size="sm" className="rounded-xl">
-              <a href={mapUrl} target="_blank" rel="noopener noreferrer">
-                View on Map
-                <ExternalLink className="size-3.5" />
-              </a>
-            </Button>
-          ) : (
-            <Button size="sm" className="rounded-xl" disabled>
-              View on Map
-            </Button>
-          )}
-        </CardFooter>
-      </Card>
-    )
-  }
-
-  if (!destination) return null
-
   return (
     <Card
       className={cn(
@@ -210,7 +825,8 @@ function ExplorePage() {
   const [showFilters, setShowFilters] = useState(false)
   const [isExploring, setIsExploring] = useState(false)
   const [apiCountries, setApiCountries] = useState<ApiCountry[]>([])
-
+  const [apiMeta, setApiMeta] = useState<ApiMeta | null>(null)
+  const [imgUrl, setimgUrl] = useState<string>("")
   const filterResults = useMemo(
     () => getExploreResults(region, season, price),
     [region, season, price]
@@ -241,12 +857,11 @@ function ExplorePage() {
   }, [apiCountries, region, query])
 
   const hasApiData = filteredApiCountries.length > 0
-  const apiFeatured = filteredApiCountries.slice(0, 3)
-  const apiTrending = filteredApiCountries.slice(3, 9)
-  const apiRecommended = filteredApiCountries.slice(9, 12)
 
   useEffect(() => {
     setApiCountries([])
+    setApiMeta(null)
+    setimgUrl("")
   }, [region, season, price])
 
   const handleExploreNow = async () => {
@@ -272,7 +887,33 @@ function ExplorePage() {
       const countries =
         data.data?.objects ?? data.objects ?? (Array.isArray(data) ? data : [])
       setApiCountries(countries)
-      console.log("Generated trip plan:", data)
+      setApiMeta(data.data?.meta ?? data.meta ?? null)
+
+      const searchTerm = query.trim()
+      const { data: tripData, error: tripError } = await supabase
+        .from("trips")
+        .select("imageUrl")
+        .ilike("to", `%${searchTerm}%`)
+        .not("imageUrl", "is", null)
+        .limit(1)
+        .maybeSingle()
+
+      let nextImageUrl = tripData?.imageUrl?.trim() ?? ""
+
+      if (tripError || !nextImageUrl) {
+        const imageRes = await fetch(
+          `/api/country-image?country=${encodeURIComponent(searchTerm.toLowerCase())}`,
+          { method: "GET" }
+        )
+        if (imageRes.ok) {
+          const imageData = (await imageRes.json()) as { url?: string }
+          nextImageUrl = imageData.url?.trim() ?? ""
+        }
+      }
+
+      if (nextImageUrl) {
+        setimgUrl(nextImageUrl)
+      }
       toast("Trip plan generated successfully", "success")
     } finally {
       setIsExploring(false)
@@ -402,6 +1043,86 @@ function ExplorePage() {
           </Card>
 
           <div className="space-y-10">
+            {hasApiData && (
+              <section className="space-y-6">
+                <div className="overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/8 via-card to-sky-500/8 p-5 sm:p-6">
+                  <div className="flex flex-wrap items-center gap-3">
+                    <div>
+                      <p className="text-xs font-semibold tracking-wider text-primary uppercase">
+                        Explore results
+                      </p>
+                      <h2 className="mt-1 text-2xl font-bold tracking-tight">
+                        {apiMeta?.total ?? filteredApiCountries.length} countries found
+                      </h2>
+                    </div>
+                    <div className="flex flex-wrap gap-2 sm:ml-auto">
+                      {apiMeta?.duration != null && (
+                        <Badge variant="secondary" className="rounded-full">
+                          {apiMeta.duration}ms
+                        </Badge>
+                      )}
+                      {apiMeta?.request_id && (
+                        <Badge variant="outline" className="rounded-full font-mono text-[10px]">
+                          {apiMeta.request_id.slice(0, 8)}
+                        </Badge>
+                      )}
+                    </div>
+                    <Button
+                      onClick={handleExploreNow}
+                      disabled={isExploring}
+                      variant="default"
+                      className={cn(
+                        "w-full rounded-xl sm:ml-auto sm:w-auto",
+                        isExploring && "animate-pulse cursor-wait opacity-90"
+                      )}
+                    >
+                      {isExploring ? (
+                        <>
+                          <Loader2 className="size-4 animate-spin" />
+                          Exploring…
+                        </>
+                      ) : (
+                        "Explore Again"
+                      )}
+                    </Button>
+                  </div>
+
+                  {apiMeta && (
+                    <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+                      {[
+                        { label: "Total", value: apiMeta.total },
+                        { label: "Returned", value: apiMeta.count },
+                        { label: "Limit", value: apiMeta.limit },
+                        { label: "Offset", value: apiMeta.offset },
+                        { label: "More", value: apiMeta.more ? "Yes" : "No" },
+                      ].map((item) => (
+                        <div
+                          key={item.label}
+                          className="rounded-xl border border-border/50 bg-background/80 px-4 py-3 shadow-sm backdrop-blur-sm"
+                        >
+                          <p className="text-[11px] font-semibold text-muted-foreground uppercase">
+                            {item.label}
+                          </p>
+                          <p className="mt-1 text-lg font-bold tabular-nums">{item.value ?? "—"}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="space-y-10">
+                  {filteredApiCountries.map((country, i) => (
+                    <CountryProfileExplorer
+                      key={country.uuid ?? country.codes?.alpha_2 ?? countryName(country) ?? i}
+                      country={country}
+                      imageUrl={imgUrl}
+                    />
+                  ))}
+                </div>
+              </section>
+            )}
+
+            {!hasApiData && (
             <section>
               <div className="mb-4 flex flex-wrap items-center gap-2">
                 <h2 className="text-xl font-semibold">Featured destinations</h2>
@@ -429,15 +1150,7 @@ function ExplorePage() {
                 </Button>
               </div>
               <div className="grid gap-4 sm:grid-cols-2">
-                {hasApiData
-                  ? apiFeatured.map((country, i) => (
-                      <DestinationCard
-                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
-                        apiCountry={country}
-                        large={i === 0}
-                      />
-                    ))
-                  : featured.length === 0 ? (
+                {featured.length === 0 ? (
                       <Card className="border-dashed py-8 text-center sm:col-span-2">
                         <CardContent>
                           <p className="font-medium">No featured destinations</p>
@@ -453,70 +1166,44 @@ function ExplorePage() {
                     )}
               </div>
             </section>
+            )}
 
+            {!hasApiData && (
             <section>
               <div className="mb-4 flex items-center gap-2">
                 <TrendingUp className="size-5 text-primary" />
                 <h2 className="text-xl font-semibold">Trending now</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {hasApiData
-                  ? apiTrending.map((country, i) => (
-                      <DestinationCard
-                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
-                        apiCountry={country}
-                      />
-                    ))
-                  : trending.map((d) => (
-                      <DestinationCard key={d.id} destination={d} />
-                    ))}
+                {trending.map((d) => (
+                  <DestinationCard key={d.id} destination={d} />
+                ))}
               </div>
             </section>
+            )}
 
+            {!hasApiData && (
             <section>
               <h2 className="mb-4 text-xl font-semibold">Recommended for you</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                {hasApiData
-                  ? apiRecommended.map((country, i) => (
-                      <DestinationCard
-                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
-                        apiCountry={country}
-                      />
-                    ))
-                  : recommended.map((d) => (
-                      <DestinationCard key={d.id} destination={d} />
-                    ))}
+                {recommended.map((d) => (
+                  <DestinationCard key={d.id} destination={d} />
+                ))}
               </div>
             </section>
+            )}
 
+            {!hasApiData && (
             <section>
               <h2 className="mb-4 text-xl font-semibold">
                 All destinations
+                {!hasApiData && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
-                  ({hasApiData ? filteredApiCountries.length : filtered.length})
+                  ({filtered.length})
                 </span>
+                )}
               </h2>
-              {hasApiData ? (
-                filteredApiCountries.length === 0 ? (
-                  <Card className="border-dashed py-12 text-center">
-                    <CardContent>
-                      <p className="font-medium">No countries found</p>
-                      <p className="mt-1 text-sm text-muted-foreground">
-                        Try adjusting your filters
-                      </p>
-                    </CardContent>
-                  </Card>
-                ) : (
-                  <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {filteredApiCountries.map((country, i) => (
-                      <DestinationCard
-                        key={country.codes?.alpha_2 ?? country.name?.common ?? country.names?.common ?? i}
-                        apiCountry={country}
-                      />
-                    ))}
-                  </div>
-                )
-              ) : filtered.length === 0 ? (
+              {hasApiData ? null : filtered.length === 0 ? (
                 <Card className="border-dashed py-12 text-center">
                   <CardContent>
                     <p className="font-medium">No destinations match your filters</p>
@@ -533,6 +1220,7 @@ function ExplorePage() {
                 </div>
               )}
             </section>
+            )}
           </div>
         </div>
       </div>

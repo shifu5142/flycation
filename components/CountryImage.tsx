@@ -12,6 +12,7 @@ type CountryImageProps = {
   alt?: string
   className?: string
   wrapperClassName?: string
+  fill?: boolean
 }
 
 function CountryImage({
@@ -20,6 +21,7 @@ function CountryImage({
   alt = "",
   className,
   wrapperClassName,
+  fill = false,
 }: CountryImageProps) {
   const staticFallback = useMemo(
     () => getStaticCountryImagePath(country),
@@ -47,6 +49,7 @@ function CountryImage({
     <AppImage
       src={resolvedSrc}
       alt={alt}
+      fill={fill}
       className={cn("size-full object-cover", className)}
       wrapperClassName={wrapperClassName}
       onError={handleError}
