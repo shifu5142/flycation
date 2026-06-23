@@ -7,8 +7,7 @@ import {
   Check,
   Clock,
   Download,
-  Loader2,
-  Plane,
+  Loader2,  Plane,
   QrCode,
   Ticket,
 } from "lucide-react"
