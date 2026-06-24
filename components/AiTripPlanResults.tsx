@@ -2,6 +2,7 @@
 
 import type { ComponentType } from "react"
 import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
 import {
   BedDouble,
   Building2,
@@ -81,6 +82,16 @@ function PeriodIcon({ period }: { period: string }) {
   if (period === "Afternoon")
     return <Sunset className="size-3.5 text-orange-500" />
   return <Moon className="size-3.5 text-indigo-500" />
+}
+
+function periodLabel(
+  period: string,
+  t: ReturnType<typeof useTranslations<"tripPlanResults">>
+) {
+  if (period === "Morning") return t("morning")
+  if (period === "Afternoon") return t("afternoon")
+  if (period === "Evening") return t("evening")
+  return period
 }
 
 type HotelData = AiGeneratedTripPlan["hotels"][number]
@@ -197,6 +208,8 @@ export function AiTripPlanResults({
   handleSave?: () => void | Promise<void>
   onStartOver?: () => void
 }) {
+  const t = useTranslations("tripPlanResults")
+  const tCommon = useTranslations("common")
   const [heroImageUrl, setHeroImageUrl] = useState(() =>
     resolveInitialHeroImage(plan)
   )
@@ -222,16 +235,16 @@ export function AiTripPlanResults({
   }, [plan.hero.country, plan.hero.destination, plan.hero.image])
 
   const budgetRows = [
-    { label: "Flights", value: plan.budgetBreakdown.flights, icon: Plane },
-    { label: "Hotels", value: plan.budgetBreakdown.hotels, icon: Building2 },
-    { label: "Food", value: plan.budgetBreakdown.food, icon: Utensils },
-    { label: "Activities", value: plan.budgetBreakdown.activities, icon: Sparkles },
+    { labelKey: "flights" as const, value: plan.budgetBreakdown.flights, icon: Plane },
+    { labelKey: "hotels" as const, value: plan.budgetBreakdown.hotels, icon: Building2 },
+    { labelKey: "food" as const, value: plan.budgetBreakdown.food, icon: Utensils },
+    { labelKey: "activities" as const, value: plan.budgetBreakdown.activities, icon: Sparkles },
     {
-      label: "Transportation",
+      labelKey: "transportation" as const,
       value: plan.budgetBreakdown.transportation,
       icon: MapPin,
     },
-    { label: "Shopping", value: plan.budgetBreakdown.shopping, icon: Wallet },
+    { labelKey: "shopping" as const, value: plan.budgetBreakdown.shopping, icon: Wallet },
   ].filter((row) => parsePriceAmount(row.value) > 0 || row.value)
 
   return (
@@ -270,7 +283,7 @@ export function AiTripPlanResults({
               <div className="space-y-2">
                 <Badge className="w-fit rounded-full bg-primary/10 text-primary">
                   <Sparkles className="size-3" />
-                  AI-generated plan
+                  {t("aiGenerated")}
                 </Badge>
                 <div className="space-y-0.5">
                   <p className="text-2xl font-bold leading-tight tracking-tight sm:text-3xl">
@@ -313,7 +326,7 @@ export function AiTripPlanResults({
                 <div className="rounded-lg border border-border/60 bg-muted/30 px-3 py-2.5">
                   <p className="flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
                     <Plane className="size-3 shrink-0" />
-                    Suggested flight
+                    {t("suggestedFlight")}
                   </p>
                   <p className="mt-1 text-sm font-semibold leading-snug">
                     {plan.flights[0].departureAirport} → {plan.flights[0].arrivalAirport}
@@ -329,7 +342,7 @@ export function AiTripPlanResults({
             <CardHeader className="flex flex-col justify-center gap-3 p-6">
               <Badge className="w-fit rounded-full bg-primary/10 text-primary">
                 <Sparkles className="size-3" />
-                AI-generated plan
+                {t("aiGenerated")}
               </Badge>
               <CardTitle className="text-2xl">
                 {plan.hero.destination}
@@ -362,7 +375,7 @@ export function AiTripPlanResults({
         <section className="space-y-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <CalendarDays className="size-5 text-primary" />
-            Day-by-day itinerary
+            {t("itinerary")}
           </h2>
           <div className="grid gap-4 lg:grid-cols-3">
             {plan.itinerary.map((day) => {
@@ -400,7 +413,7 @@ export function AiTripPlanResults({
                         <div className="min-w-0">
                           <p className="flex items-center gap-1.5 text-xs font-semibold text-muted-foreground">
                             <PeriodIcon period={slot.period} />
-                            {slot.period}
+                            {periodLabel(slot.period, t)}
                           </p>
                           <p className="mt-0.5 text-sm">{slot.activity}</p>
                         </div>
@@ -420,7 +433,7 @@ export function AiTripPlanResults({
           <section className="space-y-4">
             <h2 className="flex items-center gap-2 text-xl font-semibold">
               <Building2 className="size-5 text-primary" />
-              Hotel suggestions
+              {t("hotels")}
             </h2>
             <div className="space-y-3">
               {plan.hotels.map((hotel) => (
@@ -449,7 +462,7 @@ export function AiTripPlanResults({
                         <span className="font-bold text-primary">
                           {hotel.pricePerNight}
                           <span className="text-xs font-normal text-muted-foreground">
-                            /night
+                            {tCommon("perNight")}
                           </span>
                         </span>
                       </div>
@@ -467,7 +480,7 @@ export function AiTripPlanResults({
             <section className="space-y-4">
               <h2 className="flex items-center gap-2 text-xl font-semibold">
                 <Plane className="size-5 text-primary" />
-                Suggested flights
+                {t("flights")}
               </h2>
               <div className="space-y-3">
                 {plan.flights.map((flight, i) => (
@@ -489,7 +502,7 @@ export function AiTripPlanResults({
                             {flight.departureTime}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Depart
+                            {tCommon("depart")}
                           </p>
                         </div>
                         <div className="flex flex-1 flex-col items-center gap-1">
@@ -503,13 +516,13 @@ export function AiTripPlanResults({
                             {flight.arrivalTime}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            Arrive
+                            {tCommon("arrive")}
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center justify-between border-t border-border/60 pt-3">
                         <span className="text-sm text-muted-foreground">
-                          Estimated fare
+                          {t("estimatedFare")}
                         </span>
                         <span className="text-xl font-bold text-primary">
                           {flight.price}
@@ -527,7 +540,7 @@ export function AiTripPlanResults({
             <section className="space-y-4">
               <h2 className="flex items-center gap-2 text-xl font-semibold">
                 <Wallet className="size-5 text-primary" />
-                Budget breakdown
+                {t("budget")}
               </h2>
               <Card className="rounded-2xl border-border/60 shadow-sm">
                 <CardContent className="space-y-3 p-5">
@@ -539,11 +552,11 @@ export function AiTripPlanResults({
                         ? Math.round((amount / budgetTotal) * 100)
                         : 0
                     return (
-                      <div key={row.label} className="space-y-1.5">
+                      <div key={row.labelKey} className="space-y-1.5">
                         <div className="flex items-center justify-between text-sm">
                           <span className="flex items-center gap-2">
                             <Icon className="size-3.5 text-muted-foreground" />
-                            {row.label}
+                            {t(row.labelKey)}
                           </span>
                           <span className="font-semibold">{row.value}</span>
                         </div>
@@ -560,7 +573,7 @@ export function AiTripPlanResults({
                   })}
                   <Separator />
                   <div className="flex items-center justify-between font-semibold">
-                    <span>Total estimate</span>
+                    <span>{t("totalEstimate")}</span>
                     <span className="text-lg text-primary">
                       {plan.budgetBreakdown.total}
                     </span>
@@ -577,7 +590,7 @@ export function AiTripPlanResults({
         <section className="space-y-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <Sparkles className="size-5 text-primary" />
-            Things to do
+            {t("thingsToDo")}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {plan.activities.map((activity) => (
@@ -604,7 +617,7 @@ export function AiTripPlanResults({
                     )}
                     <p className="mt-1 text-sm font-semibold text-primary">
                       {activity.price.toLowerCase().includes("free")
-                        ? "Free"
+                        ? tCommon("free")
                         : activity.price}
                     </p>
                   </div>
@@ -620,7 +633,7 @@ export function AiTripPlanResults({
         <section className="space-y-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <Utensils className="size-5 text-primary" />
-            Restaurant picks
+            {t("restaurants")}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {plan.restaurants.map((restaurant) => (
@@ -656,20 +669,20 @@ export function AiTripPlanResults({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <CloudSun className="size-5 text-primary" />
-                Weather
+                {t("weather")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-2 text-sm">
               <p>
-                <span className="font-medium">Season:</span>{" "}
+                <span className="font-medium">{t("season")}:</span>{" "}
                 {plan.weather.season}
               </p>
               <p>
-                <span className="font-medium">Temperature:</span>{" "}
+                <span className="font-medium">{t("temperature")}:</span>{" "}
                 {plan.weather.averageTemperature}
               </p>
               <p>
-                <span className="font-medium">Conditions:</span>{" "}
+                <span className="font-medium">{t("conditions")}:</span>{" "}
                 {plan.weather.conditions}
               </p>
               <p className="text-muted-foreground">
@@ -684,7 +697,7 @@ export function AiTripPlanResults({
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <CalendarDays className="size-5 text-primary" />
-                Best time to visit
+                {t("bestTime")}
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -709,7 +722,7 @@ export function AiTripPlanResults({
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-lg">
               <Wallet className="size-5 text-primary" />
-              Currency · {plan.currencyInfo.currency} ({plan.currencyInfo.symbol})
+              {t("currency")} · {plan.currencyInfo.currency} ({plan.currencyInfo.symbol})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -725,7 +738,7 @@ export function AiTripPlanResults({
         <section className="space-y-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <MapPin className="size-5 text-primary" />
-            Getting around
+            {t("gettingAround")}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {plan.transportation.map((item, i) => (
@@ -753,7 +766,7 @@ export function AiTripPlanResults({
         <section className="space-y-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <MapPin className="size-5 text-primary" />
-            Places to explore
+            {t("placesToExplore")}
             {plan.map.centerDestination && (
               <span className="text-base font-normal text-muted-foreground">
                 · {plan.map.centerDestination}
@@ -784,7 +797,7 @@ export function AiTripPlanResults({
         <section className="space-y-4">
           <h2 className="flex items-center gap-2 text-xl font-semibold">
             <Sparkles className="size-5 text-primary" />
-            Packing list
+            {t("packingList")}
           </h2>
           <Card className="rounded-2xl border-border/60 shadow-sm">
             <CardContent className="grid gap-2 p-5 sm:grid-cols-2 lg:grid-cols-3">
@@ -799,17 +812,17 @@ export function AiTripPlanResults({
         </section>
       )}
 
-      <TipsList title="AI travel tips" icon={Lightbulb} tips={plan.aiTips} />
-      <TipsList title="Local tips" icon={MapPin} tips={plan.localTips} />
-      <TipsList title="Safety tips" icon={Shield} tips={plan.safetyTips} />
+      <TipsList title={t("aiTips")} icon={Lightbulb} tips={plan.aiTips} />
+      <TipsList title={t("localTips")} icon={MapPin} tips={plan.localTips} />
+      <TipsList title={t("safetyTips")} icon={Shield} tips={plan.safetyTips} />
 
       {!readOnly && (handleSave || onStartOver) && (
       <Card className="rounded-2xl border-primary/20 bg-primary/5 shadow-sm">
         <CardContent className="flex flex-wrap items-center justify-between gap-4 p-5">
           <div>
-            <p className="font-semibold">Happy with this plan?</p>
+            <p className="font-semibold">{t("happyWithPlan")}</p>
             <p className="text-sm text-muted-foreground">
-              Save, regenerate, or export your itinerary
+              {t("happySubtitle")}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -821,7 +834,7 @@ export function AiTripPlanResults({
                 onClick={onStartOver}
               >
                 <RefreshCw className="size-4" />
-                Regenerate plan
+                {t("regenerate")}
               </Button>
             )}
             {handleSave && (
@@ -830,7 +843,7 @@ export function AiTripPlanResults({
               className="rounded-xl shadow-md shadow-primary/20"
             >
               <Save className="size-4" />
-              Save trip
+              {t("saveTrip")}
             </Button>
             )}
           </div>

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { getTranslations } from "next-intl/server"
 import { ArrowLeft, Calendar, DollarSign, MapPin, Star } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
@@ -25,6 +26,8 @@ interface TripPageProps {
 
 async function TripPage({ params }: TripPageProps) {
   const { id } = await params
+  const t = await getTranslations("tripDetail")
+  const tCommon = await getTranslations("common")
   const trip = getTripById(id)
 
   if (!trip) {
@@ -39,7 +42,7 @@ async function TripPage({ params }: TripPageProps) {
         <Button variant="ghost" size="sm" asChild>
           <Link href="/dashboard">
             <ArrowLeft className="size-4" />
-            Back to dashboard
+            {t("back")}
           </Link>
         </Button>
 
@@ -74,26 +77,26 @@ async function TripPage({ params }: TripPageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="size-5 text-primary" />
-              Budget summary
+              {t("budgetSummary")}
             </CardTitle>
-            <CardDescription>Estimated costs for your trip</CardDescription>
+            <CardDescription>{t("estimatedCosts")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-4">
               <div className="rounded-xl bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">Flights</p>
+                <p className="text-sm text-muted-foreground">{t("flights")}</p>
                 <p className="text-xl font-bold">${trip.budget.flights}</p>
               </div>
               <div className="rounded-xl bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">Hotels</p>
+                <p className="text-sm text-muted-foreground">{t("hotels")}</p>
                 <p className="text-xl font-bold">${trip.budget.hotels}</p>
               </div>
               <div className="rounded-xl bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">Activities</p>
+                <p className="text-sm text-muted-foreground">{t("activities")}</p>
                 <p className="text-xl font-bold">${trip.budget.activities}</p>
               </div>
               <div className="rounded-xl bg-primary/10 p-4 text-center">
-                <p className="text-sm text-primary">Total</p>
+                <p className="text-sm text-primary">{t("total")}</p>
                 <p className="text-xl font-bold text-primary">${trip.budget.total}</p>
               </div>
             </div>
@@ -102,7 +105,7 @@ async function TripPage({ params }: TripPageProps) {
 
         {/* Flights */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Flight suggestions</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("flightSuggestions")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {flights.map((flight) => (
               <FlightCard key={flight.id} flight={flight} />
@@ -112,7 +115,7 @@ async function TripPage({ params }: TripPageProps) {
 
         {/* Hotels */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Hotel suggestions</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("hotelSuggestions")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {trip.hotels.map((hotel) => (
               <Card key={hotel.name} className="overflow-hidden transition-all hover:shadow-md">
@@ -134,10 +137,10 @@ async function TripPage({ params }: TripPageProps) {
                     <div className="flex items-center justify-between">
                       <p className="text-lg font-bold text-primary">
                         ${hotel.price}
-                        <span className="text-sm font-normal text-muted-foreground">/night</span>
+                        <span className="text-sm font-normal text-muted-foreground">{tCommon("perNight")}</span>
                       </p>
                       <Button size="sm" variant="outline">
-                        Book
+                        {tCommon("book")}
                       </Button>
                     </div>
                   </div>
@@ -151,7 +154,7 @@ async function TripPage({ params }: TripPageProps) {
 
         {/* Itinerary */}
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Day-by-day itinerary</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("itinerary")}</h2>
           <div className="space-y-4">
             {trip.itinerary.map((day) => (
               <ItineraryDay key={day.day} day={day} />

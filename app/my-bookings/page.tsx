@@ -2,12 +2,14 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 import {
   Building2,
   Check,
   Clock,
   Download,
-  Loader2,  Plane,
+  Loader2,
+  Plane,
   QrCode,
   Ticket,
 } from "lucide-react"
@@ -28,7 +30,6 @@ import { Separator } from "@/components/ui/separator"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  statusLabels,
   type Booking,
   type BookingStatus,
 } from "@/lib/mockBookingsPage"
@@ -95,6 +96,8 @@ function BookingCardSkeleton() {
 }
 
 function BookingsLoadingView() {
+  const t = useTranslations("bookings")
+
   return (
     <div className="space-y-8">
       <div className="grid gap-4 sm:grid-cols-3">
@@ -107,7 +110,7 @@ function BookingsLoadingView() {
         <Skeleton className="h-11 w-64 rounded-xl" />
         <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 py-4 text-sm text-muted-foreground">
           <Loader2 className="size-4 animate-spin text-primary" />
-          Loading your bookings…
+          {t("loading")}
         </div>
         <BookingCardSkeleton />
         <BookingCardSkeleton />
@@ -174,6 +177,9 @@ function BookingTimeline({ booking }: { booking: Booking }) {
 }
 
 function BookingCard({ booking }: { booking: Booking }) {
+  const t = useTranslations("bookings")
+  const tCommon = useTranslations("common")
+  const tStatus = useTranslations("status")
   const detailHref = buildBookingHref(booking)
   const imageSrc = resolveBookingImage(booking)
 
@@ -195,7 +201,7 @@ function BookingCard({ booking }: { booking: Booking }) {
               statusBadgeClass(booking.status)
             )}
           >
-            {statusLabels[booking.status]}
+            {tStatus(booking.status)}
           </Badge>
         </Link>
 
@@ -212,7 +218,7 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <CardDescription className="mt-1">{booking.subtitle}</CardDescription>
               </div>
               <div className="text-right">
-                <p className="text-xs text-muted-foreground">Ref</p>
+                <p className="text-xs text-muted-foreground">{tCommon("ref")}</p>
                 <p className="font-mono text-sm font-semibold">{booking.reference}</p>
               </div>
             </div>
@@ -228,7 +234,7 @@ function BookingCard({ booking }: { booking: Booking }) {
                 <span className="font-medium">{booking.time}</span>
               )}
               <span className="text-muted-foreground">
-                {booking.travelers} traveler{booking.travelers !== 1 ? "s" : ""}
+                {t("travelerCount", { count: booking.travelers })}
               </span>
               {booking.price > 0 && (
                 <span className="font-bold text-primary">${booking.price}</span>
@@ -243,18 +249,18 @@ function BookingCard({ booking }: { booking: Booking }) {
               <div className="flex items-center gap-3 rounded-xl border border-dashed border-border bg-muted/30 px-4 py-3">
                 <QrCode className="size-10 text-muted-foreground" />
                 <div>
-                  <p className="text-xs font-medium">Boarding pass</p>
+                  <p className="text-xs font-medium">{t("boardingPass")}</p>
                   <p className="text-[10px] text-muted-foreground">
-                    QR placeholder
+                    {t("qrPlaceholder")}
                   </p>
                 </div>
               </div>
               <Button variant="outline" size="sm" className="rounded-xl">
                 <Download className="size-3.5" />
-                Download invoice
+                {t("downloadInvoice")}
               </Button>
               <Button size="sm" className="rounded-xl" asChild>
-                <Link href={detailHref}>Manage booking</Link>
+                <Link href={detailHref}>{t("manageBooking")}</Link>
               </Button>
             </div>
           </CardContent>
@@ -276,10 +282,27 @@ function EmptyBookings({ message }: { message: string }) {
 }
 
 function MyBookingsPage() {
+  const t = useTranslations("bookings")
+  const tCommon = useTranslations("common")
+  const tTimeline = useTranslations("bookingTimeline")
   const [tab, setTab] = useState("upcoming")
   const [upcoming, setUpcoming] = useState<Booking[]>([])
   const [past, setPast] = useState<Booking[]>([])
   const [loaded, setLoaded] = useState(false)
+
+  const tripLabels = useMemo(
+    () => ({
+      roundTrip: tCommon("roundTrip"),
+      oneWay: tCommon("oneWay"),
+      booked: tTimeline("booked"),
+      confirmed: tTimeline("confirmed"),
+      awaitingConfirmation: tTimeline("awaitingConfirmation"),
+      returnLabel: tTimeline("return"),
+      departure: tTimeline("departure"),
+      cancelled: tTimeline("cancelled"),
+    }),
+    [tCommon, tTimeline]
+  )
 
   useEffect(() => {
     const fetchBookings = async () => {
@@ -301,10 +324,14 @@ function MyBookingsPage() {
 
         const rows = (data ?? []) as Trip[]
         setUpcoming(
-          rows.filter((trip) => isUpcomingTrip(trip.departure)).map(tripToBooking)
+          rows
+            .filter((trip) => isUpcomingTrip(trip.departure))
+            .map((row) => tripToBooking(row, tripLabels))
         )
         setPast(
-          rows.filter((trip) => !isUpcomingTrip(trip.departure)).map(tripToBooking)
+          rows
+            .filter((trip) => !isUpcomingTrip(trip.departure))
+            .map((row) => tripToBooking(row, tripLabels))
         )
       } finally {
         setLoaded(true)
@@ -312,7 +339,7 @@ function MyBookingsPage() {
     }
 
     void fetchBookings()
-  }, [])
+  }, [tripLabels])
 
   const bookings = useMemo(() => [...upcoming, ...past], [upcoming, past])
 
@@ -324,11 +351,11 @@ function MyBookingsPage() {
       <div className="mx-auto max-w-6xl space-y-8">
         <div>
           <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-            Reservations
+            {t("eyebrow")}
           </p>
-          <h1 className="mt-1 text-3xl font-bold tracking-tight">My Bookings</h1>
+          <h1 className="mt-1 text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Flights, hotels, and packages — all in one place
+            {t("subtitle")}
           </p>
         </div>
 
@@ -338,9 +365,9 @@ function MyBookingsPage() {
           <>
         <div className="grid gap-4 sm:grid-cols-3">
           {[
-            { label: "Upcoming", value: upcoming.length, icon: Plane },
-            { label: "Confirmed", value: confirmedCount, icon: Check },
-            { label: "Pending", value: pendingCount, icon: Clock },
+            { label: t("upcoming"), value: upcoming.length, icon: Plane },
+            { label: t("confirmed"), value: confirmedCount, icon: Check },
+            { label: t("pending"), value: pendingCount, icon: Clock },
           ].map((stat) => {
             const Icon = stat.icon
             return (
@@ -362,16 +389,16 @@ function MyBookingsPage() {
         <Tabs value={tab} onValueChange={setTab}>
           <TabsList className="h-11 rounded-xl bg-muted/70 p-1">
             <TabsTrigger value="upcoming" className="rounded-lg px-4">
-              Upcoming ({upcoming.length})
+              {t("upcoming")} ({upcoming.length})
             </TabsTrigger>
             <TabsTrigger value="past" className="rounded-lg px-4">
-              Past ({past.length})
+              {t("past")} ({past.length})
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="upcoming" className="mt-6 space-y-4">
             {upcoming.length === 0 ? (
-              <EmptyBookings message="No upcoming bookings" />
+              <EmptyBookings message={t("noUpcoming")} />
             ) : (
               upcoming.map((booking) => (
                 <BookingCard key={booking.id} booking={booking} />
@@ -381,7 +408,7 @@ function MyBookingsPage() {
 
           <TabsContent value="past" className="mt-6 space-y-4">
             {past.length === 0 ? (
-              <EmptyBookings message="No past bookings" />
+              <EmptyBookings message={t("noPast")} />
             ) : (
               past.map((booking) => (
                 <BookingCard key={booking.id} booking={booking} />

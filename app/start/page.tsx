@@ -3,6 +3,7 @@
 import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
+import { useTranslations } from "next-intl"
 import {
   ArrowLeft,
   ArrowRight,
@@ -27,7 +28,7 @@ import {
 import { findCountryLocation } from "@/lib/countries"
 import { formatFlightDate } from "@/components/FlightDateRangePicker"
 
-const steps = ["From", "To", "Date", "Preview"] as const
+const stepKeys = ["from", "to", "date", "preview"] as const
 
 function formatLocation(value: string) {
   return findCountryLocation(value)?.country ?? value
@@ -35,6 +36,8 @@ function formatLocation(value: string) {
 
 function StartPlanningPage() {
   const router = useRouter()
+  const t = useTranslations("start")
+  const tCommon = useTranslations("common")
   const [step, setStep] = useState(0)
   const [from, setFrom] = useState("")
   const [to, setTo] = useState("")
@@ -45,7 +48,7 @@ function StartPlanningPage() {
     if (step === 0 && !from.trim()) return
     if (step === 1 && !to.trim()) return
     if (step === 2 && !date) return
-    if (step < steps.length - 1) {
+    if (step < stepKeys.length - 1) {
       setStep((s) => s + 1)
       return
     }
@@ -66,25 +69,25 @@ function StartPlanningPage() {
         <Button variant="ghost" size="sm" asChild className="mb-6">
           <Link href="/">
             <ArrowLeft className="size-4" />
-            Back to home
+            {tCommon("backToHome")}
           </Link>
         </Button>
 
         <div className="mb-8 text-center">
           <Badge variant="secondary" className="mb-3 rounded-full">
             <Sparkles className="size-3" />
-            Guest preview
+            {t("badge")}
           </Badge>
-          <h1 className="text-3xl font-bold tracking-tight">Start planning</h1>
+          <h1 className="text-3xl font-bold tracking-tight">{t("title")}</h1>
           <p className="mt-2 text-muted-foreground">
             Answer a few questions — no account needed for the preview
           </p>
         </div>
 
         <div className="mb-8 flex justify-center gap-2">
-          {steps.map((label, i) => (
+          {stepKeys.map((labelKey, i) => (
             <div
-              key={label}
+              key={labelKey}
               className={`flex size-9 items-center justify-center rounded-full text-xs font-semibold transition-colors ${
                 i <= step
                   ? "bg-primary text-primary-foreground"
@@ -98,22 +101,22 @@ function StartPlanningPage() {
 
         <Card className="overflow-visible rounded-2xl border-border/60 shadow-lg">
           <CardHeader>
-            <CardTitle>{steps[step]}</CardTitle>
+            <CardTitle>{tCommon(stepKeys[step])}</CardTitle>
             <CardDescription>
-              {step === 0 && "Where are you flying from?"}
-              {step === 1 && "Where do you want to go?"}
-              {step === 2 && "When would you like to travel?"}
-              {step === 3 && "Ready to see your trip preview"}
+              {step === 0 && t("fromPrompt")}
+              {step === 1 && t("toPrompt")}
+              {step === 2 && t("datePrompt")}
+              {step === 3 && t("readyPrompt")}
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6 overflow-visible">
             {step === 0 && (
               <AirportSearchInput
                 id="start-from"
-                label="From"
+                label={tCommon("from")}
                 value={from}
                 onChange={setFrom}
-                placeholder="Select origin"
+                placeholder={t("selectOrigin")}
                 size="lg"
                 className="rounded-lg"
               />
@@ -122,10 +125,10 @@ function StartPlanningPage() {
             {step === 1 && (
               <AirportSearchInput
                 id="start-to"
-                label="To"
+                label={tCommon("to")}
                 value={to}
                 onChange={setTo}
-                placeholder="Select destination"
+                placeholder={t("selectDestination")}
                 size="lg"
                 className="rounded-lg"
               />
@@ -138,7 +141,7 @@ function StartPlanningPage() {
                 returnDate=""
                 onDepartureChange={setDate}
                 onReturnChange={() => {}}
-                label="Date"
+                label={tCommon("date")}
               />
             )}
 
@@ -171,7 +174,7 @@ function StartPlanningPage() {
                   onClick={goBack}
                   disabled={loading}
                 >
-                  Back
+                  {tCommon("back")}
                 </Button>
               )}
               <Button
@@ -188,16 +191,16 @@ function StartPlanningPage() {
                 {loading ? (
                   <>
                     <Loader2 className="size-4 animate-spin" />
-                    Loading preview…
+                    {t("loadingPreview")}
                   </>
                 ) : step === 3 ? (
                   <>
-                    View preview
+                    {t("viewPreview")}
                     <ArrowRight className="size-4" />
                   </>
                 ) : (
                   <>
-                    Continue
+                    {tCommon("continue")}
                     <ArrowRight className="size-4" />
                   </>
                 )}
@@ -209,7 +212,7 @@ function StartPlanningPage() {
                 <Link
                   href={`/register?from=${encodeURIComponent(from)}&to=${encodeURIComponent(to)}&date=${encodeURIComponent(date)}`}
                 >
-                  Sign up to generate full itinerary
+                  {t("signUpGenerate")}
                 </Link>
               </Button>
             )}

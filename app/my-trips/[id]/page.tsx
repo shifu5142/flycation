@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { ArrowLeft, CalendarDays, MapPin, Sparkles, Trash2 } from "lucide-react"
 
@@ -45,6 +46,8 @@ function TripPlanSkeleton() {
 }
 
 function MyTripPlanPage() {
+  const t = useTranslations("myTripDetail")
+  const tCommon = useTranslations("common")
   const params = useParams<{ id: string }>()
   const searchParams = useSearchParams()
   const tripId = params.id
@@ -62,11 +65,11 @@ function MyTripPlanPage() {
       .delete()
       .eq("id", tripId)
       if (error) {
-        toast("Failed to delete trip plan", "info")
+        toast(t("deleteFailed"), "info")
         return
       }
       setTimeout(() => {
-        toast("Trip plan deleted", "success")
+        toast(t("deleteSuccess"), "success")
         router.push("/my-trips")
       }, 1000)
     
@@ -145,13 +148,13 @@ function MyTripPlanPage() {
           <Button variant="ghost" size="sm" className="rounded-xl" asChild>
             <Link href="/my-trips">
               <ArrowLeft className="size-4" />
-              Back to my trips
+              {t("back")}
             </Link>
           </Button>
           {tripPlan && (
             <Badge variant="outline" className="rounded-full px-3 py-1">
               <Sparkles className="size-3" />
-              AI trip plan
+              {t("aiBadge")}
             </Badge>
           )}
         </div>
@@ -162,12 +165,12 @@ function MyTripPlanPage() {
           <Card className="border-dashed py-16 text-center">
             <CardContent>
               <MapPin className="mx-auto size-10 text-muted-foreground/60" />
-              <p className="mt-3 text-lg font-semibold">Trip not found</p>
+              <p className="mt-3 text-lg font-semibold">{t("notFoundTitle")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                This plan may have been removed or the link is invalid.
+                {t("notFoundDescription")}
               </p>
               <Button className="mt-6 rounded-xl" asChild>
-                <Link href="/my-trips">Return to my trips</Link>
+                <Link href="/my-trips">{t("returnToTrips")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -176,7 +179,7 @@ function MyTripPlanPage() {
             <section className="relative overflow-hidden rounded-2xl border border-border/60 bg-gradient-to-br from-primary/10 via-card to-violet-500/10 p-6 sm:p-8">
               <div className="relative z-10 space-y-3">
                 <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-                  Trip details
+                  {t("tripDetails")}
                 </p>
                 <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
                   {tripPlan.destination}
@@ -195,7 +198,7 @@ function MyTripPlanPage() {
                   </Badge>
                   {createdLabel && (
                     <Badge variant="outline" className="rounded-full">
-                      Created {createdLabel}
+                      {tCommon("created")} {createdLabel}
                     </Badge>
                   )}
                 </div>
@@ -214,7 +217,7 @@ function MyTripPlanPage() {
                 onClick={() => setDeleteConfirmOpen(true)}
               >
                 <Trash2 className="size-4" />
-                Delete trip plan
+                {t("deleteTrip")}
               </Button>
             </div>
           </>
@@ -232,7 +235,7 @@ function MyTripPlanPage() {
                 <Trash2 className="size-6 text-destructive" />
               </div>
               <DialogTitle className="text-xl font-bold tracking-tight">
-                Delete trip plan?
+                {t("deleteTitle")}
               </DialogTitle>
             </DialogHeader>
           </div>
@@ -240,8 +243,7 @@ function MyTripPlanPage() {
           <div className="px-6 py-6">
             <DialogDescription asChild>
               <p className="text-base leading-relaxed text-foreground">
-                Delete this trip plan permanently? You won&apos;t be able to
-                recover it after this.
+                {t("deleteDescription")}
               </p>
             </DialogDescription>
           </div>
@@ -253,7 +255,7 @@ function MyTripPlanPage() {
               className="min-w-24 rounded-xl"
               onClick={() => setDeleteConfirmOpen(false)}
             >
-              Cancel
+              {tCommon("cancel")}
             </Button>
             <Button
               type="button"
@@ -264,7 +266,7 @@ function MyTripPlanPage() {
                 void handleDeleteTripPlan()
               }}
             >
-              Confirm
+              {tCommon("confirm")}
             </Button>
           </DialogFooter>
         </DialogContent>

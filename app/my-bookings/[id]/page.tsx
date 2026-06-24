@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useParams, useSearchParams } from "next/navigation";
 import { useEffect, useMemo, useState } from "react";
+import { useTranslations } from "next-intl";
 import {
   ArrowLeft,
   ArrowRight,
@@ -45,7 +46,6 @@ import {
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import {
-  statusLabels,
   type Booking,
   type BookingStatus,
 } from "@/lib/mockBookingsPage";
@@ -59,39 +59,37 @@ function bookingIcon(type: Booking["type"]) {
   return Ticket;
 }
 
-function parseRoute(title: string) {
+function parseRoute(title: string, destinationFallback: string) {
   const parts = title.split("→").map((s) => s.trim());
   return {
     from: parts[0] ?? title,
-    to: parts[1] ?? "Destination",
+    to: parts[1] ?? destinationFallback,
   };
 }
 
-function parseSubtitle(subtitle: string) {
+function parseSubtitle(
+  subtitle: string,
+  labels: { economy: string; roundTrip: string; oneWay: string }
+) {
   const parts = subtitle.split("·").map((s) => s.trim());
   return {
     carrier: parts[0] ?? "FlyCation",
     travelClass:
       parts.find((p) => /economy|business|first|premium/i.test(p)) ??
       parts[1] ??
-      "Economy",
+      labels.economy,
     tripType:
       parts.find((p) => /round|one way|non-stop|stop/i.test(p)) ??
-      (subtitle.toLowerCase().includes("round") ? "Round trip" : "One way"),
+      (subtitle.toLowerCase().includes("round")
+        ? labels.roundTrip
+        : labels.oneWay),
   };
 }
 
-const statusOptions: {
-  status: "booked" | "pending" | "cancelled";
-  icon: typeof Check;
-  label: string;
-}[] = [
-  { status: "booked", icon: Check, label: "Booked" },
-  { status: "pending", icon: Clock, label: "Pending" },
-  { status: "cancelled", icon: XCircle, label: "Cancelled" },
-];
-
 export default function MyBookingDetailPage() {
+  const t = useTranslations("bookingDetail");
+  const tStatus = useTranslations("status");
+  const tCommon = useTranslations("common");
   const params = useParams<{ id: string }>();
   const searchParams = useSearchParams();
   const [bookingStatus, setBookingStatus] = useState<BookingStatus | null>(
@@ -99,6 +97,30 @@ export default function MyBookingDetailPage() {
   );
   console.log(bookingStatus);
   const { toast } = useToast();
+
+  const statusOptions = useMemo(
+    () =>
+      [
+        { status: "booked" as const, icon: Check, label: tStatus("booked") },
+        { status: "pending" as const, icon: Clock, label: tStatus("pending") },
+        {
+          status: "cancelled" as const,
+          icon: XCircle,
+          label: tStatus("cancelled"),
+        },
+      ] as const,
+    [tStatus]
+  );
+
+  const subtitleLabels = useMemo(
+    () => ({
+      economy: t("economy"),
+      roundTrip: tCommon("roundTrip"),
+      oneWay: tCommon("oneWay"),
+    }),
+    [t, tCommon]
+  );
+
   useEffect(() => {
     if (!bookingStatus) return;
     (async () => {
@@ -116,10 +138,11 @@ export default function MyBookingDetailPage() {
         console.error(error);
       }
       if (data) {
-          toast("Booking status updated", "success");
+          toast(t("statusUpdated"), "success");
       }
     })();
   }, [bookingStatus]);
+
   const booking = useMemo(() => {
     const raw = searchParams.get("data");
     if (!raw) return null;
@@ -139,15 +162,33 @@ export default function MyBookingDetailPage() {
 
   const activeStatus = bookingStatus ?? booking?.status ?? "pending";
 
-  const route = booking ? parseRoute(booking.title) : null;
-  const meta = booking ? parseSubtitle(booking.subtitle) : null;
+  const route = booking ? parseRoute(booking.title, t("destination")) : null;
+  const meta = booking ? parseSubtitle(booking.subtitle, subtitleLabels) : null;
   const travelerNames = booking
-    ? Array.from({ length: booking.travelers }, (_, i) => `Traveler ${i + 1}`)
+    ? Array.from({ length: booking.travelers }, (_, i) =>
+        t("travelerName", { number: i + 1 })
+      )
     : [];
 
   const baseFare =
     booking && booking.price > 0 ? Math.round(booking.price * 0.82) : 0;
   const taxes = booking && booking.price > 0 ? booking.price - baseFare : 0;
+
+  const typeLabel =
+    booking?.type === "flight"
+      ? t("typeFlight")
+      : booking?.type === "hotel"
+        ? t("typeHotel")
+        : t("typePackage");
+
+  const importantNotes = [
+    t("importantArrival"),
+    t("importantPassport"),
+    t("importantCheckIn"),
+    activeStatus === "cancelled"
+      ? t("importantCancelled")
+      : t("importantCancellation"),
+  ];
 
   return (
     <DashboardShell>
@@ -156,18 +197,18 @@ export default function MyBookingDetailPage() {
           <Button variant="ghost" size="sm" className="rounded-xl" asChild>
             <Link href="/my-bookings">
               <ArrowLeft className="size-4" />
-              Back to bookings
+              {t("back")}
             </Link>
           </Button>
           {booking && (
             <div className="flex flex-wrap gap-2">
               <Button variant="outline" size="sm" className="rounded-xl">
                 <Share2 className="size-3.5" />
-                Share
+                {t("share")}
               </Button>
               <Button variant="outline" size="sm" className="rounded-xl">
                 <CalendarPlus className="size-3.5" />
-                Add to calendar
+                {t("addToCalendar")}
               </Button>
             </div>
           )}
@@ -176,12 +217,12 @@ export default function MyBookingDetailPage() {
         {!booking || !route || !meta ? (
           <Card className="rounded-2xl border-dashed py-16 text-center">
             <CardContent>
-              <p className="font-medium">Booking not found</p>
+              <p className="font-medium">{t("notFoundTitle")}</p>
               <p className="mt-1 text-sm text-muted-foreground">
-                Open this page from My Bookings to view trip details.
+                {t("openFromBookings")}
               </p>
               <Button className="mt-6 rounded-xl" asChild>
-                <Link href="/my-bookings">Return to My Bookings</Link>
+                <Link href="/my-bookings">{t("returnToBookings")}</Link>
               </Button>
             </CardContent>
           </Card>
@@ -201,10 +242,10 @@ export default function MyBookingDetailPage() {
                     statusBadgeClass(activeStatus),
                   )}
                 >
-                  {statusLabels[activeStatus]}
+                  {tStatus(activeStatus)}
                 </Badge>
                 <Badge className="absolute top-4 right-4 border border-white/20 bg-black/40 text-white backdrop-blur-sm">
-                  {booking.type.charAt(0).toUpperCase() + booking.type.slice(1)}
+                  {typeLabel}
                 </Badge>
                 <div className="absolute right-4 bottom-4 left-4 text-white">
                   <div className="flex items-center gap-3">
@@ -231,7 +272,7 @@ export default function MyBookingDetailPage() {
               <div className="flex flex-wrap items-center gap-4 rounded-2xl border border-border/60 bg-card p-5">
                 <div>
                   <p className="text-xs text-muted-foreground">
-                    Booking reference
+                    {t("bookingReference")}
                   </p>
                   <p className="font-mono text-lg font-semibold">
                     {booking.reference}
@@ -242,13 +283,13 @@ export default function MyBookingDetailPage() {
                   className="hidden h-10 sm:block"
                 />
                 <div>
-                  <p className="text-xs text-muted-foreground">Confirmation</p>
+                  <p className="text-xs text-muted-foreground">{t("confirmation")}</p>
                   <p className="text-sm font-medium">
                     {activeStatus === "confirmed"
-                      ? "E-ticket issued"
+                      ? t("eTicketIssued")
                       : activeStatus === "pending"
-                        ? "Processing"
-                        : "Cancelled"}
+                        ? t("processing")
+                        : tStatus("cancelled")}
                   </p>
                 </div>
                 <Separator
@@ -256,7 +297,7 @@ export default function MyBookingDetailPage() {
                   className="hidden h-10 sm:block"
                 />
                 <div>
-                  <p className="text-xs text-muted-foreground">Booked on</p>
+                  <p className="text-xs text-muted-foreground">{t("bookedOn")}</p>
                   <p className="text-sm font-medium">
                     {booking.timeline[0]?.date ?? booking.dates}
                   </p>
@@ -267,13 +308,13 @@ export default function MyBookingDetailPage() {
                 className="h-auto rounded-xl px-5 py-4 lg:self-center"
               >
                 <Download className="size-4" />
-                Download invoice
+                {t("downloadInvoice")}
               </Button>
             </div>
 
             <Card className="overflow-hidden rounded-2xl border-border/60">
               <CardHeader className="border-b border-border/60 bg-muted/20 pb-4">
-                <CardTitle className="text-lg">Itinerary overview</CardTitle>
+                <CardTitle className="text-lg">{t("itineraryOverview")}</CardTitle>
                 <CardDescription>
                   {meta.carrier} · {meta.travelClass} · {meta.tripType}
                 </CardDescription>
@@ -282,7 +323,7 @@ export default function MyBookingDetailPage() {
                 <div className="grid gap-0 md:grid-cols-[1fr_auto_1fr]">
                   <div className="space-y-2 p-6 md:text-right">
                     <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-                      Departure
+                      {t("departure")}
                     </p>
                     <p className="text-2xl font-bold">{route.from}</p>
                     <p className="flex items-center gap-1.5 text-sm text-muted-foreground md:justify-end">
@@ -313,7 +354,7 @@ export default function MyBookingDetailPage() {
 
                   <div className="space-y-2 p-6">
                     <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-                      Arrival
+                      {t("arrival")}
                     </p>
                     <p className="text-2xl font-bold">{route.to}</p>
                     <p className="flex items-center gap-1.5 text-sm text-muted-foreground">
@@ -335,33 +376,33 @@ export default function MyBookingDetailPage() {
 
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
               {[
-                { icon: MapPin, label: "Route", value: booking.title },
+                { icon: MapPin, label: t("route"), value: booking.title },
                 {
                   icon: CalendarDays,
-                  label: "Travel dates",
+                  label: t("travelDates"),
                   value: booking.dates,
                 },
                 {
                   icon: Users,
-                  label: "Passengers",
-                  value: `${booking.travelers} traveler${booking.travelers !== 1 ? "s" : ""}`,
+                  label: t("passengers"),
+                  value: t("travelerCount", { count: booking.travelers }),
                 },
-                { icon: Plane, label: "Class", value: meta.travelClass },
-                { icon: Ticket, label: "Carrier", value: meta.carrier },
+                { icon: Plane, label: t("travelClass"), value: meta.travelClass },
+                { icon: Ticket, label: t("carrier"), value: meta.carrier },
                 {
                   icon: Clock,
-                  label: "Schedule",
-                  value: booking.time ?? "See itinerary",
+                  label: t("schedule"),
+                  value: booking.time ?? t("seeItinerary"),
                 },
                 {
                   icon: Shield,
-                  label: "Protection",
-                  value: "Travel insurance included",
+                  label: t("protection"),
+                  value: t("travelInsuranceIncluded"),
                 },
                 {
                   icon: Luggage,
-                  label: "Baggage",
-                  value: "1 checked · 1 carry-on",
+                  label: t("baggage"),
+                  value: t("baggageAllowance"),
                 },
               ].map((item) => {
                 const Icon = item.icon;
@@ -391,10 +432,10 @@ export default function MyBookingDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Users className="size-5 text-primary" />
-                    Travelers
+                    {t("travelers")}
                   </CardTitle>
                   <CardDescription>
-                    Passenger details for this reservation
+                    {t("passengerDetails")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
@@ -410,13 +451,14 @@ export default function MyBookingDetailPage() {
                         <div>
                           <p className="font-medium">{name}</p>
                           <p className="text-xs text-muted-foreground">
-                            Adult · {meta.travelClass}
+                            {t("adultWithClass", { travelClass: meta.travelClass })}
                           </p>
                         </div>
                       </div>
                       <Badge variant="outline" className="font-mono text-xs">
-                        Seat {String.fromCharCode(65 + (index % 6))}
-                        {12 + index}
+                        {t("seat", {
+                          seat: `${String.fromCharCode(65 + (index % 6))}${12 + index}`,
+                        })}
                       </Badge>
                     </div>
                   ))}
@@ -427,29 +469,29 @@ export default function MyBookingDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <Luggage className="size-5 text-primary" />
-                    Included services
+                    {t("includedServices")}
                   </CardTitle>
                   <CardDescription>
-                    What&apos;s covered with your booking
+                    {t("includedServicesDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3 sm:grid-cols-2">
                   {[
                     {
                       icon: Luggage,
-                      label: "Checked bag",
-                      detail: "23 kg per person",
+                      label: t("checkedBag"),
+                      detail: t("checkedBagDetail"),
                     },
                     {
                       icon: Utensils,
-                      label: "Meals",
-                      detail: "Complimentary on board",
+                      label: t("meals"),
+                      detail: t("mealsDetail"),
                     },
-                    { icon: Wifi, label: "Wi-Fi", detail: "Messaging package" },
+                    { icon: Wifi, label: t("wifi"), detail: t("wifiDetail") },
                     {
                       icon: Shield,
-                      label: "Flex fare",
-                      detail: "Date change allowed",
+                      label: t("flexFare"),
+                      detail: t("flexFareDetail"),
                     },
                   ].map((item) => {
                     const Icon = item.icon;
@@ -476,14 +518,13 @@ export default function MyBookingDetailPage() {
               <CardHeader>
                 <div className="flex flex-wrap items-start justify-between gap-4">
                   <div>
-                    <CardTitle className="text-lg">Trip status</CardTitle>
+                    <CardTitle className="text-lg">{t("tripStatus")}</CardTitle>
                     <CardDescription className="mt-1.5 flex flex-wrap items-center gap-1.5">
                       <Clock className="size-3.5" />
                       {booking.dates}
                       {booking.time ? ` · ${booking.time}` : ""}
                       {" · "}
-                      {booking.travelers} traveler
-                      {booking.travelers !== 1 ? "s" : ""}
+                      {t("travelerCount", { count: booking.travelers })}
                     </CardDescription>
                   </div>
                   <div className="flex flex-wrap gap-2">
@@ -552,9 +593,9 @@ export default function MyBookingDetailPage() {
                       <QrCode className="size-14 text-foreground/80" />
                     </div>
                     <div>
-                      <p className="font-medium">Mobile boarding pass</p>
+                      <p className="font-medium">{t("mobileBoardingPass")}</p>
                       <p className="text-sm text-muted-foreground">
-                        Ref {booking.reference} · Show at gate
+                        {t("showAtGate", { ref: booking.reference })}
                       </p>
                       <p className="mt-1 font-mono text-xs text-muted-foreground">
                         {booking.id.padStart(8, "0").slice(0, 8).toUpperCase()}
@@ -567,11 +608,11 @@ export default function MyBookingDetailPage() {
                       className="rounded-xl"
                       disabled={activeStatus === "cancelled"}
                     >
-                      Check in online
+                      {t("checkInOnline")}
                     </Button>
                     <Button variant="outline" size="lg" className="rounded-xl">
                       <Download className="size-4" />
-                      Save boarding pass
+                      {t("saveBoardingPass")}
                     </Button>
                   </div>
                 </div>
@@ -583,34 +624,34 @@ export default function MyBookingDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <CreditCard className="size-5 text-primary" />
-                    Payment summary
+                    {t("paymentSummary")}
                   </CardTitle>
                   <CardDescription>
-                    Charges for this reservation
+                    {t("chargesDescription")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-3">
                   {booking.price > 0 ? (
                     <>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Base fare</span>
+                        <span className="text-muted-foreground">{t("baseFare")}</span>
                         <span>${baseFare}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Taxes & fees
+                          {t("taxesFees")}
                         </span>
                         <span>${taxes}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Seat selection
+                          {t("seatSelection")}
                         </span>
-                        <span>Included</span>
+                        <span>{t("included")}</span>
                       </div>
                       <Separator />
                       <div className="flex justify-between font-semibold">
-                        <span>Total paid</span>
+                        <span>{t("totalPaid")}</span>
                         <span className="text-primary">${booking.price}</span>
                       </div>
                     </>
@@ -618,26 +659,25 @@ export default function MyBookingDetailPage() {
                     <>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Reservation
+                          {t("reservation")}
                         </span>
-                        <span>Confirmed</span>
+                        <span>{tStatus("confirmed")}</span>
                       </div>
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">
-                          Payment status
+                          {t("paymentStatus")}
                         </span>
-                        <span>No charge on file</span>
+                        <span>{t("noChargeOnFile")}</span>
                       </div>
                       <Separator />
                       <p className="text-sm text-muted-foreground">
-                        Pricing details will appear once payment is linked to
-                        this booking.
+                        {t("pricingPending")}
                       </p>
                     </>
                   )}
                   <Button variant="outline" className="mt-2 w-full rounded-xl">
                     <FileText className="size-4" />
-                    View receipt
+                    {t("viewReceipt")}
                   </Button>
                 </CardContent>
               </Card>
@@ -646,17 +686,17 @@ export default function MyBookingDetailPage() {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <FileText className="size-5 text-primary" />
-                    Travel documents
+                    {t("travelDocuments")}
                   </CardTitle>
                   <CardDescription>
-                    Download or print before you go
+                    {t("downloadBeforeGo")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-2">
                   {[
-                    { label: "E-ticket confirmation", size: "PDF · 245 KB" },
-                    { label: "Itinerary receipt", size: "PDF · 180 KB" },
-                    { label: "Travel insurance policy", size: "PDF · 92 KB" },
+                    { label: t("eTicketConfirmation"), size: t("docSizeETicket") },
+                    { label: t("itineraryReceipt"), size: t("docSizeItinerary") },
+                    { label: t("travelInsurance"), size: t("docSizeInsurance") },
                   ].map((doc) => (
                     <button
                       key={doc.label}
@@ -683,18 +723,11 @@ export default function MyBookingDetailPage() {
               <CardHeader>
                 <CardTitle className="flex items-center gap-2 text-lg">
                   <Info className="size-5 text-primary" />
-                  Important information
+                  {t("importantInfo")}
                 </CardTitle>
               </CardHeader>
               <CardContent className="grid gap-4 sm:grid-cols-2">
-                {[
-                  "Arrive at the airport at least 3 hours before international departures.",
-                  "Valid passport required — check expiry date before travel.",
-                  "Online check-in opens 24 hours before departure.",
-                  activeStatus === "cancelled"
-                    ? "This booking has been cancelled. Contact support for rebooking options."
-                    : "Free cancellation within 24 hours of booking for eligible fares.",
-                ].map((note) => (
+                {importantNotes.map((note) => (
                   <div
                     key={note}
                     className="flex gap-2 rounded-xl bg-muted/30 px-4 py-3 text-sm text-muted-foreground"
@@ -714,11 +747,10 @@ export default function MyBookingDetailPage() {
                   </div>
                   <div>
                     <p className="font-semibold">
-                      Need help with this booking?
+                      {t("needHelp")}
                     </p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Our support team is available 24/7 for changes, refunds,
-                      and special assistance.
+                      {t("supportDescription")}
                     </p>
                     <div className="mt-3 flex flex-wrap gap-4 text-sm">
                       <span className="flex items-center gap-1.5 font-medium">
@@ -732,7 +764,7 @@ export default function MyBookingDetailPage() {
                     </div>
                   </div>
                 </div>
-                <Button className="shrink-0 rounded-xl">Contact support</Button>
+                <Button className="shrink-0 rounded-xl">{t("contactSupport")}</Button>
               </CardContent>
             </Card>
           </>

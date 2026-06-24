@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { CalendarDays, Loader2, MapPin, Plus, Sparkles } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
@@ -48,6 +49,7 @@ function formatLabel(value: string) {
 }
 
 function TripPlanCard({ trip }: { trip: TripPlan }) {
+  const t = useTranslations("myTrips")
   const imageSrc = trip.image || "/hero-travel.png"
 
   return (
@@ -74,19 +76,19 @@ function TripPlanCard({ trip }: { trip: TripPlan }) {
         </CardTitle>
         <CardDescription className="flex items-center gap-1.5 text-sm">
           <CalendarDays className="size-3.5 shrink-0" />
-          {trip.duration || "Duration not set"}
+          {trip.duration || t("durationNotSet")}
         </CardDescription>
       </CardHeader>
 
       <CardContent className="flex flex-1 flex-col gap-3 pt-0">
         <p className="line-clamp-3 flex-1 text-sm text-muted-foreground">
-          {trip.summary || "No summary available."}
+          {trip.summary || t("noSummary")}
         </p>
         <Button variant="outline" className="w-full rounded-xl" size="sm" asChild>
           <Link
             href={`/my-trips/${trip.id}?image=${encodeURIComponent(imageSrc)}`}
           >
-            View trip
+            {t("viewTrip")}
           </Link>
         </Button>
       </CardContent>
@@ -113,11 +115,13 @@ function TripPlanCardSkeleton() {
 }
 
 function TripsLoadingView() {
+  const t = useTranslations("myTrips")
+
   return (
     <div className="space-y-5">
       <div className="flex items-center justify-center gap-2 rounded-xl border border-dashed border-border/70 bg-muted/20 py-4 text-sm text-muted-foreground">
         <Loader2 className="size-4 animate-spin text-primary" />
-        Loading your trips…
+        {t("loading")}
       </div>
       <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
         {Array.from({ length: 3 }).map((_, i) => (
@@ -129,13 +133,15 @@ function TripsLoadingView() {
 }
 
 function EmptyTrips({ message }: { message: string }) {
+  const t = useTranslations("myTrips")
+
   return (
     <Card className="border-dashed py-16 text-center">
       <CardContent>
         <Sparkles className="mx-auto size-10 text-primary/60" />
         <p className="mt-3 font-medium">{message}</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Start planning your next adventure
+          {t("emptySubtitle")}
         </p>
       </CardContent>
     </Card>
@@ -143,6 +149,7 @@ function EmptyTrips({ message }: { message: string }) {
 }
 
 function MyTripsPage() {
+  const t = useTranslations("myTrips")
   const [trips, setTrips] = useState<TripPlan[]>([])
   const [loaded, setLoaded] = useState(false)
 
@@ -186,17 +193,17 @@ function MyTripsPage() {
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
             <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-              Travel plans
+              {t("eyebrow")}
             </p>
-            <h1 className="mt-1 text-3xl font-bold tracking-tight">My Trips</h1>
+            <h1 className="mt-1 text-3xl font-bold tracking-tight">{t("title")}</h1>
             <p className="mt-1 text-sm text-muted-foreground">
-              Manage upcoming, past, and draft itineraries in one place
+              {t("subtitle")}
             </p>
           </div>
           <Link href="/ai-trip-planner">
           <Button className="rounded-xl shadow-md shadow-primary/20">
               <Plus className="size-4" />
-              Create new trip
+              {t("createNew")}
             </Button>
           </Link>
         </div>
@@ -204,7 +211,7 @@ function MyTripsPage() {
         {!loaded ? (
           <TripsLoadingView />
         ) : trips.length === 0 ? (
-          <EmptyTrips message="There are no trips" />
+          <EmptyTrips message={t("emptyTitle")} />
         ) : (
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {trips.map((trip) => (

@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { notFound } from "next/navigation"
+import { getTranslations } from "next-intl/server"
 import {
   ArrowLeft,
   Calendar,
@@ -32,6 +33,8 @@ interface GuestExampleTripPageProps {
 
 async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
   const { id } = await params
+  const t = await getTranslations("examples")
+  const tCommon = await getTranslations("common")
   const trip = getTripById(id)
 
   if (!trip) {
@@ -47,23 +50,22 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
           <Button variant="ghost" size="sm" asChild>
             <Link href="/examples">
               <ArrowLeft className="size-4" />
-              All examples
+              {t("allExamples")}
             </Link>
           </Button>
           <Badge variant="secondary" className="gap-1 rounded-full">
             <Eye className="size-3" />
-            Preview only
+            {t("previewOnly")}
           </Badge>
         </div>
 
         <Card className="rounded-2xl border-primary/20 bg-primary/5">
           <CardContent className="flex flex-col gap-3 p-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="text-sm text-muted-foreground">
-              Sign up to save trips and generate your own personalized
-              itineraries.
+              {t("signUpBanner")}
             </p>
             <Button asChild size="sm" className="shrink-0 rounded-lg">
-              <Link href="/register">Create free account</Link>
+              <Link href="/register">{t("createAccount")}</Link>
             </Button>
           </CardContent>
         </Card>
@@ -97,26 +99,26 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <DollarSign className="size-5 text-primary" />
-              Budget summary
+              {t("budgetSummary")}
             </CardTitle>
-            <CardDescription>Estimated costs for this sample trip</CardDescription>
+            <CardDescription>{t("estimatedCosts")}</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 sm:grid-cols-4">
               <div className="rounded-xl bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">Flights</p>
+                <p className="text-sm text-muted-foreground">{t("flights")}</p>
                 <p className="text-xl font-bold">${trip.budget.flights}</p>
               </div>
               <div className="rounded-xl bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">Hotels</p>
+                <p className="text-sm text-muted-foreground">{t("hotels")}</p>
                 <p className="text-xl font-bold">${trip.budget.hotels}</p>
               </div>
               <div className="rounded-xl bg-muted/50 p-4 text-center">
-                <p className="text-sm text-muted-foreground">Activities</p>
+                <p className="text-sm text-muted-foreground">{t("activities")}</p>
                 <p className="text-xl font-bold">${trip.budget.activities}</p>
               </div>
               <div className="rounded-xl bg-primary/10 p-4 text-center">
-                <p className="text-sm text-primary">Total</p>
+                <p className="text-sm text-primary">{t("total")}</p>
                 <p className="text-xl font-bold text-primary">${trip.budget.total}</p>
               </div>
             </div>
@@ -124,7 +126,7 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
         </Card>
 
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Flight suggestions</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("flightSuggestions")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {flights.map((flight) => (
               <FlightCard key={flight.id} flight={flight} />
@@ -133,7 +135,7 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
         </div>
 
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Hotel suggestions</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("hotelSuggestions")}</h2>
           <div className="grid gap-4 sm:grid-cols-2">
             {trip.hotels.map((hotel) => (
               <Card key={hotel.name} className="overflow-hidden">
@@ -155,7 +157,7 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
                     <p className="text-lg font-bold text-primary">
                       ${hotel.price}
                       <span className="text-sm font-normal text-muted-foreground">
-                        /night
+                        {tCommon("perNight")}
                       </span>
                     </p>
                   </div>
@@ -168,7 +170,7 @@ async function GuestExampleTripPage({ params }: GuestExampleTripPageProps) {
         <Separator />
 
         <div>
-          <h2 className="mb-4 text-xl font-semibold">Day-by-day itinerary</h2>
+          <h2 className="mb-4 text-xl font-semibold">{t("itinerary")}</h2>
           <div className="space-y-4">
             {trip.itinerary.map((day) => (
               <ItineraryDay key={day.day} day={day} />

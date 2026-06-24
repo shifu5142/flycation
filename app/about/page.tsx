@@ -1,4 +1,7 @@
+"use client"
+
 import Link from "next/link"
+import { useTranslations } from "next-intl"
 import { ArrowLeft, Plane, Sparkles, Users } from "lucide-react"
 
 import { GuestLayout } from "@/components/GuestLayout"
@@ -11,61 +14,54 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 
-const values = [
-  {
-    icon: Sparkles,
-    title: "AI-first planning",
-    description:
-      "Describe your trip and get a complete itinerary with flights, hotels, and activities.",
-  },
+const valueKeys = [
+  { icon: Sparkles, titleKey: "aiTitle" as const, descKey: "aiDesc" as const },
   {
     icon: Plane,
-    title: "Built for travelers",
-    description:
-      "Flycation helps you go from idea to itinerary in minutes, not hours of research.",
+    titleKey: "travelersTitle" as const,
+    descKey: "travelersDesc" as const,
   },
   {
     icon: Users,
-    title: "For every style",
-    description:
-      "Budget backpackers, luxury seekers, and families — plans adapt to how you travel.",
+    titleKey: "styleTitle" as const,
+    descKey: "styleDesc" as const,
   },
 ]
 
 function AboutPage() {
+  const t = useTranslations("about")
+  const tCommon = useTranslations("common")
+
   return (
     <GuestLayout>
       <div className="mx-auto max-w-4xl px-4 py-12 sm:px-6 lg:px-8">
         <Button variant="ghost" size="sm" asChild className="mb-6">
           <Link href="/">
             <ArrowLeft className="size-4" />
-            Back to home
+            {tCommon("backToHome")}
           </Link>
         </Button>
 
         <Badge variant="secondary" className="mb-4 rounded-full">
-          About Flycation
+          {t("badge")}
         </Badge>
-        <h1 className="text-4xl font-bold tracking-tight">Travel planning, reimagined</h1>
+        <h1 className="text-4xl font-bold tracking-tight">{t("title")}</h1>
         <p className="mt-4 text-lg leading-relaxed text-muted-foreground">
-          Flycation is an AI-powered travel planner that turns your destination
-          dreams into actionable itineraries. We combine smart recommendations
-          with a simple experience so you can focus on the adventure — not the
-          spreadsheets.
+          {t("subtitle")}
         </p>
 
         <div className="mt-12 grid gap-6 sm:grid-cols-3">
-          {values.map((item) => {
+          {valueKeys.map((item) => {
             const Icon = item.icon
             return (
-              <Card key={item.title} className="rounded-2xl border-border/60">
+              <Card key={item.titleKey} className="rounded-2xl border-border/60">
                 <CardHeader>
                   <div className="mb-3 flex size-11 items-center justify-center rounded-xl bg-primary/10 text-primary">
                     <Icon className="size-5" />
                   </div>
-                  <CardTitle className="text-base">{item.title}</CardTitle>
+                  <CardTitle className="text-base">{t(item.titleKey)}</CardTitle>
                   <CardDescription className="leading-relaxed">
-                    {item.description}
+                    {t(item.descKey)}
                   </CardDescription>
                 </CardHeader>
               </Card>
@@ -74,20 +70,17 @@ function AboutPage() {
         </div>
 
         <div className="mt-12 rounded-3xl bg-primary px-6 py-12 text-center text-primary-foreground sm:px-12">
-          <h2 className="text-2xl font-bold">Ready to plan your Flycation?</h2>
-          <p className="mx-auto mt-3 max-w-md text-primary-foreground/80">
-            Try the guest preview or create a free account for the full experience.
-          </p>
+          <h2 className="text-2xl font-bold">{t("ctaTitle")}</h2>
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <Button variant="secondary" asChild className="rounded-lg">
-              <Link href="/start">Start planning</Link>
+              <Link href="/start">{t("startPlanning")}</Link>
             </Button>
             <Button
               variant="outline"
               asChild
               className="rounded-lg border-primary-foreground/30 bg-transparent text-primary-foreground hover:bg-primary-foreground/10"
             >
-              <Link href="/register">Create free account</Link>
+              <Link href="/register">{t("createAccount")}</Link>
             </Button>
           </div>
         </div>

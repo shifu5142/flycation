@@ -3,6 +3,7 @@
 import { Suspense, useMemo } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
+import { useTranslations } from "next-intl"
 import { ArrowLeft, CalendarDays, Eye, Lock, MapPin, Sparkles } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
@@ -18,6 +19,8 @@ import { findCountryLocation } from "@/lib/countries"
 import { formatFlightDate } from "@/components/FlightDateRangePicker"
 
 function PreviewContent() {
+  const t = useTranslations("preview")
+  const tCommon = useTranslations("common")
   const searchParams = useSearchParams()
   const from = searchParams.get("from") ?? ""
   const to = searchParams.get("to") ?? ""
@@ -47,7 +50,7 @@ function PreviewContent() {
   const formatLocation = (value: string) =>
     findCountryLocation(value)?.country ?? value
 
-  const displayDeparture = departure ? formatFlightDate(departure) : "Not set"
+  const displayDeparture = departure ? formatFlightDate(departure) : tCommon("notSet")
   const displayReturn = returnDate ? formatFlightDate(returnDate) : "—"
 
   return (
@@ -55,7 +58,7 @@ function PreviewContent() {
       <Button variant="ghost" size="sm" asChild>
         <Link href="/start">
           <ArrowLeft className="size-4" />
-          Back to planning
+          {t("back")}
         </Link>
       </Button>
 
@@ -63,10 +66,10 @@ function PreviewContent() {
         <CardContent className="space-y-5 p-5">
           <div className="flex flex-col gap-3 border-b border-primary/15 pb-5 sm:flex-row sm:items-center sm:justify-between">
             <p className="font-semibold tracking-tight">
-              This is a demo page for guest users
+              {t("demoNotice")}
             </p>
             <Button asChild className="shrink-0 rounded-lg shadow-sm">
-              <Link href={loginHref}>Log in to create your real trip</Link>
+              <Link href={loginHref}>{t("loginPrompt")}</Link>
             </Button>
           </div>
 
@@ -74,32 +77,32 @@ function PreviewContent() {
             <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
               <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <MapPin className="size-3.5" />
-                From
+                {tCommon("from")}
               </p>
               <p className="mt-1 text-sm font-semibold">
-                {from ? formatLocation(from) : "Not set"}
+                {from ? formatLocation(from) : tCommon("notSet")}
               </p>
             </div>
             <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
               <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <MapPin className="size-3.5" />
-                To
+                {tCommon("to")}
               </p>
               <p className="mt-1 text-sm font-semibold">
-                {to ? formatLocation(to) : "Not set"}
+                {to ? formatLocation(to) : tCommon("notSet")}
               </p>
             </div>
             <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
               <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <CalendarDays className="size-3.5" />
-                Departure
+                {t("departure")}
               </p>
               <p className="mt-1 text-sm font-semibold">{displayDeparture}</p>
             </div>
             <div className="rounded-xl border border-border/60 bg-background/70 px-4 py-3">
               <p className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
                 <CalendarDays className="size-3.5" />
-                Return
+                {t("return")}
               </p>
               <p className="mt-1 text-sm font-semibold">{displayReturn}</p>
             </div>
@@ -109,9 +112,9 @@ function PreviewContent() {
             <div className="space-y-2">
               <Badge variant="secondary" className="rounded-full">
                 <Eye className="size-3" />
-                Preview mode
+                {t("previewMode")}
               </Badge>
-              <p className="font-semibold">Sample AI-generated trip preview</p>
+              <p className="font-semibold">{t("samplePreview")}</p>
               <p className="text-sm text-muted-foreground">
                 This is a read-only demo. Sign up to save trips and unlock the full
                 AI planner.
@@ -120,7 +123,7 @@ function PreviewContent() {
             <Button asChild className="shrink-0 rounded-lg">
               <Link href={registerHref}>
                 <Sparkles className="size-4" />
-                Sign up for full itinerary
+                {t("signUpFull")}
               </Link>
             </Button>
           </div>
@@ -135,7 +138,7 @@ function PreviewContent() {
             <Lock className="size-5 text-muted-foreground" />
           </div>
           <div>
-            <p className="font-semibold">Want the full personalized plan?</p>
+            <p className="font-semibold">{t("wantFullPlan")}</p>
             <p className="mt-1 text-sm text-muted-foreground">
               Create a free account to unlock the complete AI trip planner, save
               trips, and access your dashboard.
@@ -143,10 +146,10 @@ function PreviewContent() {
           </div>
           <div className="flex flex-wrap justify-center gap-3">
             <Button asChild className="rounded-lg">
-              <Link href={registerHref}>Create free account</Link>
+              <Link href={registerHref}>{t("createAccount")}</Link>
             </Button>
             <Button variant="outline" asChild className="rounded-lg">
-              <Link href="/examples">Browse example trips</Link>
+              <Link href="/examples">{t("browseExamples")}</Link>
             </Button>
           </div>
         </CardContent>
@@ -156,12 +159,14 @@ function PreviewContent() {
 }
 
 function PreviewPage() {
+  const t = useTranslations("preview")
+
   return (
     <GuestLayout showBanner={false}>
       <Suspense
         fallback={
           <div className="mx-auto max-w-6xl px-4 py-20 text-center text-muted-foreground">
-            Loading preview…
+            {t("loading")}
           </div>
         }
       >

@@ -72,26 +72,49 @@ export function toBookingStatus(status: string | null): BookingStatus {
   return "pending"
 }
 
-export function tripToBooking(trip: Trip): Booking {
+export function tripToBooking(
+  trip: Trip,
+  labels?: {
+    roundTrip: string
+    oneWay: string
+    booked: string
+    confirmed: string
+    awaitingConfirmation: string
+    returnLabel: string
+    departure: string
+    cancelled: string
+  }
+): Booking {
+  const copy = {
+    roundTrip: labels?.roundTrip ?? "Round trip",
+    oneWay: labels?.oneWay ?? "One way",
+    booked: labels?.booked ?? "Booked",
+    confirmed: labels?.confirmed ?? "Confirmed",
+    awaitingConfirmation: labels?.awaitingConfirmation ?? "Awaiting confirmation",
+    returnLabel: labels?.returnLabel ?? "Return",
+    departure: labels?.departure ?? "Departure",
+    cancelled: labels?.cancelled ?? "Cancelled",
+  }
+
   const status = toBookingStatus(trip.booking_status)
   const dates = trip.returnDate
     ? `${formatTripDate(trip.departure)} – ${formatTripDate(trip.returnDate)}`
     : formatTripDate(trip.departure)
 
   const timeline: BookingTimelineStep[] = [
-    { label: "Booked", date: formatTripDate(trip.departure), done: true },
+    { label: copy.booked, date: formatTripDate(trip.departure), done: true },
   ]
 
   if (status === "cancelled") {
-    timeline.push({ label: "Cancelled", date: "—", done: true })
+    timeline.push({ label: copy.cancelled, date: "—", done: true })
   } else {
     timeline.push({
-      label: status === "confirmed" ? "Confirmed" : "Awaiting confirmation",
+      label: status === "confirmed" ? copy.confirmed : copy.awaitingConfirmation,
       date: status === "confirmed" ? formatTripDate(trip.departure) : "—",
       done: status === "confirmed",
     })
     timeline.push({
-      label: trip.returnDate ? "Return" : "Departure",
+      label: trip.returnDate ? copy.returnLabel : copy.departure,
       date: trip.returnDate
         ? formatTripDate(trip.returnDate)
         : formatTripDate(trip.departure),
@@ -103,7 +126,7 @@ export function tripToBooking(trip: Trip): Booking {
     id: String(trip.id),
     type: "flight",
     title: `${formatLabel(trip.from)} → ${formatLabel(trip.to)}`,
-    subtitle: `${trip.travelClass ?? "Economy"} · ${trip.returnDate ? "Round trip" : "One way"}`,
+    subtitle: `${trip.travelClass ?? "Economy"} · ${trip.returnDate ? copy.roundTrip : copy.oneWay}`,
     reference: trip.booking_number ?? `FC-${trip.id}`,
     dates,
     status,

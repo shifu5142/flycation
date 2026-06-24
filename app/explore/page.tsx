@@ -49,6 +49,7 @@ import { getExploreResults } from "@/lib/exploreFilterResults"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ToastProvider"
 import { supabase } from "@/lib/supabase/client"
+import { useTranslations } from "next-intl"
 
 type ApiMeta = {
   count?: number
@@ -129,8 +130,8 @@ type ApiCountry = {
   _meta?: { lastUpdatedTimestamp?: number }
 }
 
-function countryName(country: ApiCountry) {
-  return country.names?.common ?? country.name?.common ?? "Unknown"
+function countryName(country: ApiCountry, unknownLabel = "Unknown") {
+  return country.names?.common ?? country.name?.common ?? unknownLabel
 }
 
 function formatNumber(value?: number) {
@@ -285,7 +286,8 @@ function CountryProfileExplorer({
   imageLoading?: boolean
   onImageReady?: () => void
 }) {
-  const name = countryName(country)
+  const t = useTranslations("explore")
+  const name = countryName(country, t("unknown"))
   const languages = Array.isArray(country.languages)
     ? country.languages.map((l) => l.name ?? l.code).filter(Boolean)
     : Object.entries(country.languages ?? {}).map(([code, label]) =>
@@ -345,7 +347,7 @@ function CountryProfileExplorer({
             )}
             {country.landlocked && (
               <Badge className="border-amber-300/30 bg-amber-400/15 text-amber-100 backdrop-blur-md">
-                Landlocked
+                {t("landlocked")}
               </Badge>
             )}
           </div>
@@ -376,7 +378,7 @@ function CountryProfileExplorer({
                 >
                   <a href={mapUrl} target="_blank" rel="noopener noreferrer">
                     <MapPin className="size-3.5" />
-                    View map
+                    {t("viewMap")}
                   </a>
                 </Button>
               )}
@@ -389,7 +391,7 @@ function CountryProfileExplorer({
                 >
                   <a href={links.wikipedia} target="_blank" rel="noopener noreferrer">
                     <ExternalLink className="size-3.5" />
-                    Wikipedia
+                    {t("wikipedia")}
                   </a>
                 </Button>
               )}
@@ -399,35 +401,35 @@ function CountryProfileExplorer({
       </div>
 
       <div className="grid gap-3 border-b border-border/60 bg-muted/10 p-5 sm:grid-cols-2 lg:grid-cols-4">
-        <StatTile icon={Users} label="Population" value={formatNumber(country.population)} />
+        <StatTile icon={Users} label={t("population")} value={formatNumber(country.population)} />
         <StatTile
           icon={Building2}
-          label="Capital"
+          label={t("capital")}
           value={country.capitals?.[0]?.name ?? country.capital?.[0]}
         />
         <StatTile
           icon={MapPin}
-          label="Area"
+          label={t("area")}
           value={
             country.area?.kilometers
-              ? `${formatNumber(country.area.kilometers)} km²`
+              ? t("areaKm", { value: formatNumber(country.area.kilometers) })
               : undefined
           }
         />
-        <StatTile icon={Landmark} label="Government" value={country.government_type} />
+        <StatTile icon={Landmark} label={t("government")} value={country.government_type} />
       </div>
 
       <div className="space-y-8 p-5 sm:p-6">
-        <SectionHeading>Identity & region</SectionHeading>
+        <SectionHeading>{t("identityRegion")}</SectionHeading>
         <div className="grid gap-4 lg:grid-cols-2">
-          <DataCategoryCard title="Overview" icon={Globe} description="Names and classification" accent="primary">
+          <DataCategoryCard title={t("overview")} icon={Globe} description={t("overviewDescription")} accent="primary">
             <DataList>
-              <DataRow label="Common name" value={country.names?.common ?? name} />
-              <DataRow label="Official name" value={country.names?.official} />
-              <DataRow label="Region" value={country.region} />
-              <DataRow label="Subregion" value={country.subregion} />
-              <DataRow label="Continents" value={country.continents?.join(", ")} />
-              <DataRow label="Government" value={country.government_type} />
+              <DataRow label={t("commonName")} value={country.names?.common ?? name} />
+              <DataRow label={t("officialName")} value={country.names?.official} />
+              <DataRow label={t("region")} value={country.region} />
+              <DataRow label={t("subregion")} value={country.subregion} />
+              <DataRow label={t("continents")} value={country.continents?.join(", ")} />
+              <DataRow label={t("government")} value={country.government_type} />
             </DataList>
             {country.names?.alternates && country.names.alternates.length > 0 && (
               <div className="mt-3 flex flex-wrap gap-1.5">
@@ -438,10 +440,10 @@ function CountryProfileExplorer({
             )}
           </DataCategoryCard>
 
-          <DataCategoryCard title="Geography" icon={MapPin} description="Location on the map" accent="sky">
+          <DataCategoryCard title={t("geography")} icon={MapPin} description={t("geographyDescription")} accent="sky">
             <DataList>
               <DataRow
-                label="Coordinates"
+                label={t("coordinates")}
                 value={
                   country.coordinates
                     ? `${country.coordinates.lat}°, ${country.coordinates.lng}°`
@@ -449,18 +451,21 @@ function CountryProfileExplorer({
                 }
               />
               <DataRow
-                label="Area"
+                label={t("area")}
                 value={
                   country.area
-                    ? `${formatNumber(country.area.kilometers)} km² · ${formatNumber(country.area.miles)} mi²`
+                    ? t("areaKmMi", {
+                        km: formatNumber(country.area.kilometers),
+                        mi: formatNumber(country.area.miles),
+                      })
                     : undefined
                 }
               />
-              <DataRow label="Landlocked" value={country.landlocked ? "Yes" : "No"} />
+              <DataRow label={t("landlocked")} value={country.landlocked ? t("yes") : t("no")} />
             </DataList>
             {country.capitals && country.capitals.length > 0 && (
               <div className="mt-3 space-y-2">
-                <p className="text-xs font-semibold text-muted-foreground uppercase">Capitals</p>
+                <p className="text-xs font-semibold text-muted-foreground uppercase">{t("capitals")}</p>
                 {country.capitals.map((cap, i) => (
                   <div
                     key={cap.name ?? i}
@@ -478,7 +483,7 @@ function CountryProfileExplorer({
             )}
             {country.borders && country.borders.length > 0 && (
               <div className="mt-3">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">Borders</p>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">{t("borders")}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {country.borders.map((code) => (
                     <InfoChip key={code}>{code}</InfoChip>
@@ -488,7 +493,7 @@ function CountryProfileExplorer({
             )}
             {country.timezones && country.timezones.length > 0 && (
               <div className="mt-3">
-                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">Timezones</p>
+                <p className="mb-2 text-xs font-semibold text-muted-foreground uppercase">{t("timezones")}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {country.timezones.map((tz) => (
                     <InfoChip key={tz}>{tz}</InfoChip>
@@ -499,9 +504,9 @@ function CountryProfileExplorer({
           </DataCategoryCard>
         </div>
 
-        <SectionHeading>People, culture & economy</SectionHeading>
+        <SectionHeading>{t("peopleCulture")}</SectionHeading>
         <div className="grid gap-4 lg:grid-cols-2">
-          <DataCategoryCard title="Languages & people" icon={Languages} accent="emerald">
+          <DataCategoryCard title={t("languagesAndPeople")} icon={Languages} accent="emerald">
             {languages.length > 0 && (
               <div className="mb-3 flex flex-wrap gap-1.5">
                 {languages.map((lang) => (
@@ -514,7 +519,7 @@ function CountryProfileExplorer({
                 Object.entries(country.demonyms).map(([lang, d]) => (
                   <DataRow
                     key={lang}
-                    label={`Demonym (${lang})`}
+                    label={t("demonym", { lang })}
                     value={[d.m, d.f].filter(Boolean).join(" / ")}
                   />
                 ))}
@@ -522,7 +527,7 @@ function CountryProfileExplorer({
                 Object.entries(country.names.native).map(([lang, n]) => (
                   <DataRow
                     key={lang}
-                    label={`Native (${lang})`}
+                    label={t("nativeName", { lang })}
                     value={n.common ?? n.official}
                   />
                 ))}
@@ -531,20 +536,20 @@ function CountryProfileExplorer({
               <div className="mt-3 grid gap-2 sm:grid-cols-2">
                 {Object.entries(country.names.translations)
                   .slice(0, 8)
-                  .map(([lang, t]) => (
+                  .map(([lang, translation]) => (
                     <div
                       key={lang}
                       className="rounded-lg border border-border/50 bg-muted/20 px-3 py-2"
                     >
                       <p className="text-[10px] font-bold text-muted-foreground uppercase">{lang}</p>
-                      <p className="text-sm font-medium">{t.common ?? t.official}</p>
+                      <p className="text-sm font-medium">{translation.common ?? translation.official}</p>
                     </div>
                   ))}
               </div>
             )}
           </DataCategoryCard>
 
-          <DataCategoryCard title="Economy & currency" icon={Coins} accent="amber">
+          <DataCategoryCard title={t("economyAndCurrency")} icon={Coins} accent="amber">
             <div className="mb-3 grid gap-2">
               {currencies.map((c, i) => (
                 <div
@@ -563,7 +568,7 @@ function CountryProfileExplorer({
             </div>
             <DataList>
               <DataRow
-                label="Gini coefficient"
+                label={t("giniCoefficient")}
                 value={
                   country.economy?.gini_coefficient
                     ? `${country.economy.gini_coefficient.value} (${country.economy.gini_coefficient.year})`
@@ -571,10 +576,13 @@ function CountryProfileExplorer({
                 }
               />
               <DataRow
-                label="Number format"
+                label={t("numberFormat")}
                 value={
                   country.number_format
-                    ? `Decimal "${country.number_format.decimal_separator}" · Thousands "${country.number_format.thousands_separator}"`
+                    ? t("numberFormatValue", {
+                        decimal: country.number_format.decimal_separator ?? "",
+                        thousands: country.number_format.thousands_separator ?? "",
+                      })
                     : undefined
                 }
               />
@@ -582,16 +590,16 @@ function CountryProfileExplorer({
           </DataCategoryCard>
         </div>
 
-        <SectionHeading>Systems & reference</SectionHeading>
+        <SectionHeading>{t("systemsAndReference")}</SectionHeading>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <DataCategoryCard title="Country codes" icon={Hash} accent="violet">
+          <DataCategoryCard title={t("countryCodes")} icon={Hash} accent="violet">
             <div className="grid grid-cols-2 gap-2">
               {[
-                { label: "Alpha-2", value: country.codes?.alpha_2 },
-                { label: "Alpha-3", value: country.codes?.alpha_3 },
-                { label: "Numeric", value: country.codes?.ccn3 },
-                { label: "IOC", value: country.codes?.cioc },
-                { label: "FIFA", value: country.codes?.fifa },
+                { label: t("alpha2"), value: country.codes?.alpha_2 },
+                { label: t("alpha3"), value: country.codes?.alpha_3 },
+                { label: t("numeric"), value: country.codes?.ccn3 },
+                { label: t("ioc"), value: country.codes?.cioc },
+                { label: t("fifa"), value: country.codes?.fifa },
               ].map((code) => (
                 <div
                   key={code.label}
@@ -604,22 +612,22 @@ function CountryProfileExplorer({
             </div>
             <DataList className="mt-3">
               <DataRow
-                label="Calling codes"
+                label={t("callingCodes")}
                 value={country.calling_codes?.map((c) => `+${c}`).join(", ")}
               />
-              <DataRow label="TLDs" value={country.tlds?.join(", ")} />
-              <DataRow label="Postal format" value={country.postal_code?.format} />
+              <DataRow label={t("tlds")} value={country.tlds?.join(", ")} />
+              <DataRow label={t("postalFormat")} value={country.postal_code?.format} />
             </DataList>
           </DataCategoryCard>
 
-          <DataCategoryCard title="Transport & calendar" icon={Car} accent="sky">
+          <DataCategoryCard title={t("transportAndCalendar")} icon={Car} accent="sky">
             <DataList>
-              <DataRow label="Driving side" value={country.cars?.driving_side} />
-              <DataRow label="Road signs" value={country.cars?.signs?.join(", ")} />
-              <DataRow label="Week starts" value={country.date?.start_of_week} />
+              <DataRow label={t("drivingSide")} value={country.cars?.driving_side} />
+              <DataRow label={t("roadSigns")} value={country.cars?.signs?.join(", ")} />
+              <DataRow label={t("weekStarts")} value={country.date?.start_of_week} />
               {country.date?.fiscal_year_start && (
                 <DataRow
-                  label="Fiscal year"
+                  label={t("fiscalYear")}
                   value={Object.entries(country.date.fiscal_year_start)
                     .map(([k, v]) => `${k}: ${v}`)
                     .join(", ")}
@@ -627,7 +635,7 @@ function CountryProfileExplorer({
               )}
               {country.date?.academic_year_start && (
                 <DataRow
-                  label="Academic year"
+                  label={t("academicYear")}
                   value={Object.entries(country.date.academic_year_start)
                     .map(([k, v]) => `${k}: ${v}`)
                     .join(", ")}
@@ -636,7 +644,7 @@ function CountryProfileExplorer({
             </DataList>
           </DataCategoryCard>
 
-          <DataCategoryCard title="Classification" icon={Landmark} accent="primary" className="md:col-span-2 xl:col-span-1">
+          <DataCategoryCard title={t("classification")} icon={Landmark} accent="primary" className="md:col-span-2 xl:col-span-1">
             <div className="flex flex-wrap gap-2">
               {Object.entries(classification).map(([key, val]) => {
                 const isBool = typeof val === "boolean"
@@ -668,7 +676,7 @@ function CountryProfileExplorer({
 
         {(country.flag?.description || country.flag?.colors) && (
           <>
-            <SectionHeading>National symbol</SectionHeading>
+            <SectionHeading>{t("nationalSymbol")}</SectionHeading>
             <Card className="overflow-hidden rounded-2xl border-border/60">
               <div className="flex flex-col sm:flex-row">
                 {country.flag?.colors && (
@@ -682,7 +690,7 @@ function CountryProfileExplorer({
                   <div className="flex items-center gap-3">
                     <span className="text-4xl">{country.flag?.emoji}</span>
                     <div>
-                      <p className="font-semibold">Flag of {name}</p>
+                      <p className="font-semibold">{t("flagOf", { name })}</p>
                       <p className="font-mono text-xs text-muted-foreground">{country.flag?.unicode}</p>
                     </div>
                   </div>
@@ -697,9 +705,9 @@ function CountryProfileExplorer({
           </>
         )}
 
-        <SectionHeading>Leadership & memberships</SectionHeading>
+        <SectionHeading>{t("leadershipAndMemberships")}</SectionHeading>
         <div className="grid gap-4 lg:grid-cols-2">
-          <DataCategoryCard title="Leaders" icon={Users} accent="primary">
+          <DataCategoryCard title={t("leaders")} icon={Users} accent="primary">
             {country.leaders?.length ? (
               <div className="space-y-2">
                 {country.leaders.map((leader, i) => (
@@ -712,19 +720,19 @@ function CountryProfileExplorer({
                     </span>
                     <div>
                       <p className="text-sm font-semibold">{leader.name}</p>
-                      <p className="text-xs text-muted-foreground">{leader.role ?? "Leader"}</p>
+                      <p className="text-xs text-muted-foreground">{leader.role ?? t("leaderRole")}</p>
                     </div>
                   </div>
                 ))}
               </div>
             ) : (
               <p className="rounded-xl border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
-                No leader data available
+                {t("noLeaderData")}
               </p>
             )}
           </DataCategoryCard>
 
-          <DataCategoryCard title="Memberships" icon={Building2} description="International organizations" accent="emerald">
+          <DataCategoryCard title={t("memberships")} icon={Building2} description={t("membershipsDescription")} accent="emerald">
             {activeMemberships.length > 0 ? (
               <div className="flex flex-wrap gap-2">
                 {activeMemberships.map((m) => (
@@ -739,7 +747,7 @@ function CountryProfileExplorer({
               </div>
             ) : (
               <p className="rounded-xl border border-dashed border-border/60 py-6 text-center text-sm text-muted-foreground">
-                No active memberships listed
+                {t("noMemberships")}
               </p>
             )}
           </DataCategoryCard>
@@ -747,17 +755,17 @@ function CountryProfileExplorer({
 
         {(links.wikipedia || links.official || mapUrl || links.open_street_maps) && (
           <>
-            <SectionHeading>Explore further</SectionHeading>
+            <SectionHeading>{t("exploreFurther")}</SectionHeading>
             <div className="grid gap-3 sm:grid-cols-2">
               {links.wikipedia && (
-                <LinkCard href={links.wikipedia} label="Wikipedia" icon={Globe} />
+                <LinkCard href={links.wikipedia} label={t("wikipedia")} icon={Globe} />
               )}
               {links.official && (
-                <LinkCard href={links.official} label="Official website" icon={Link2} />
+                <LinkCard href={links.official} label={t("officialWebsite")} icon={Link2} />
               )}
-              {mapUrl && <LinkCard href={mapUrl} label="Google Maps" icon={MapPin} />}
+              {mapUrl && <LinkCard href={mapUrl} label={t("googleMaps")} icon={MapPin} />}
               {links.open_street_maps && (
-                <LinkCard href={links.open_street_maps} label="OpenStreetMap" icon={MapPin} />
+                <LinkCard href={links.open_street_maps} label={t("openStreetMap")} icon={MapPin} />
               )}
             </div>
           </>
@@ -780,6 +788,7 @@ function DestinationCard({
   destination: ExploreDestination
   large?: boolean
 }) {
+  const tCommon = useTranslations("common")
   return (
     <Card
       className={cn(
@@ -813,13 +822,13 @@ function DestinationCard({
       </CardHeader>
       <CardFooter className="flex items-center justify-between border-t border-border/50 pt-4">
         <div>
-          <p className="text-xs text-muted-foreground">From</p>
+          <p className="text-xs text-muted-foreground">{tCommon("from")}</p>
           <p className="text-lg font-bold text-primary">
             ${destination.priceFrom}
           </p>
         </div>
         <Button size="sm" className="rounded-xl">
-          View details
+          {tCommon("viewDetails")}
         </Button>
       </CardFooter>
     </Card>
@@ -827,7 +836,8 @@ function DestinationCard({
 }
 
 function ExplorePage() {
-  const { toast } = useToast()  
+  const t = useTranslations("explore")
+  const { toast } = useToast()
   const [query, setQuery] = useState("")
   const [region, setRegion] = useState("All")
   const [season, setSeason] = useState("All")
@@ -879,7 +889,7 @@ function ExplorePage() {
   const handleExploreNow = async () => {
     if (isExploring) return
     if (!query.trim() || !region.trim() || !season.trim() || !price.trim()) {
-      toast("Please fill in all fields", "info")
+      toast(t("fillAllFields"), "info")
       return
     }
     const requestBody = {
@@ -930,7 +940,7 @@ function ExplorePage() {
       } else {
         setHeroImageLoading(false)
       }
-      toast("Trip plan generated successfully", "success")
+      toast(t("exploreSuccess"), "success")
     } catch (error) {
       console.error(error)
       setHeroImageLoading(false)
@@ -946,14 +956,13 @@ function ExplorePage() {
           <div className="relative z-10 max-w-xl space-y-4">
             <Badge variant="secondary" className="rounded-full">
               <Compass className="size-3" />
-              Explore the world
+              {t("badge")}
             </Badge>
             <h1 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Where do you want to go next?
+              {t("title")}
             </h1>
             <p className="text-muted-foreground">
-              Search destinations, compare ratings, and discover your next
-              favorite place to visit.
+              {t("subtitle")}
             </p>
             <div className="flex gap-2">
               <div className="relative flex-1">
@@ -961,7 +970,7 @@ function ExplorePage() {
                 <Input
                   value={query}
                   onChange={(e) => setQuery(e.target.value)}
-                  placeholder="Search destination or country…"
+                  placeholder={t("searchPlaceholder")}
                   className="h-11 rounded-xl border-border/80 bg-background/90 pl-9"
                 />
               </div>
@@ -987,7 +996,7 @@ function ExplorePage() {
             <CardHeader className="pb-3">
               <CardTitle className="flex items-center gap-2 text-base">
                 <Filter className="size-4 text-primary" />
-                Filters
+                {t("filters")}
               </CardTitle>
               <CardDescription>
                 {region} · {season} · {price}
@@ -995,7 +1004,7 @@ function ExplorePage() {
             </CardHeader>
             <CardContent className="space-y-5">
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Region</Label>
+                <Label className="text-xs text-muted-foreground">{t("region")}</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {exploreRegions.map((r) => (
                     <Button
@@ -1011,7 +1020,7 @@ function ExplorePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Season</Label>
+                <Label className="text-xs text-muted-foreground">{t("season")}</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {exploreSeasons.map((s) => (
                     <Button
@@ -1027,7 +1036,7 @@ function ExplorePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Price</Label>
+                <Label className="text-xs text-muted-foreground">{t("price")}</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {explorePriceRanges.map((p) => (
                     <Button
@@ -1043,7 +1052,7 @@ function ExplorePage() {
                 </div>
               </div>
               <div className="space-y-2">
-                <Label className="text-xs text-muted-foreground">Rating</Label>
+                <Label className="text-xs text-muted-foreground">{t("rating")}</Label>
                 <div className="flex flex-wrap gap-1.5">
                   {["4.5+", "4.0+", "Any"].map((r) => (
                     <Button
@@ -1068,10 +1077,12 @@ function ExplorePage() {
                   <div className="flex flex-wrap items-center gap-3">
                     <div>
                       <p className="text-xs font-semibold tracking-wider text-primary uppercase">
-                        Explore results
+                        {t("resultsTitle")}
                       </p>
                       <h2 className="mt-1 text-2xl font-bold tracking-tight">
-                        {apiMeta?.total ?? filteredApiCountries.length} countries found
+                        {t("countriesFound", {
+                          count: apiMeta?.total ?? filteredApiCountries.length,
+                        })}
                       </h2>
                     </div>
                     <div className="flex flex-wrap gap-2 sm:ml-auto">
@@ -1098,10 +1109,10 @@ function ExplorePage() {
                       {isExploring ? (
                         <>
                           <Loader2 className="size-4 animate-spin" />
-                          Exploring…
+                          {t("exploring")}
                         </>
                       ) : (
-                        "Explore Again"
+                        t("exploreAgain")
                       )}
                     </Button>
                   </div>
@@ -1109,11 +1120,14 @@ function ExplorePage() {
                   {apiMeta && (
                     <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
                       {[
-                        { label: "Total", value: apiMeta.total },
-                        { label: "Returned", value: apiMeta.count },
-                        { label: "Limit", value: apiMeta.limit },
-                        { label: "Offset", value: apiMeta.offset },
-                        { label: "More", value: apiMeta.more ? "Yes" : "No" },
+                        { label: t("metaTotal"), value: apiMeta.total },
+                        { label: t("metaReturned"), value: apiMeta.count },
+                        { label: t("metaLimit"), value: apiMeta.limit },
+                        { label: t("metaOffset"), value: apiMeta.offset },
+                        {
+                          label: t("metaMore"),
+                          value: apiMeta.more ? t("metaYes") : t("metaNo"),
+                        },
                       ].map((item) => (
                         <div
                           key={item.label}
@@ -1146,8 +1160,8 @@ function ExplorePage() {
             {!hasApiData && (
             <section>
               <div className="mb-4 flex flex-wrap items-center gap-2">
-                <h2 className="text-xl font-semibold">Featured destinations</h2>
-                <Badge variant="secondary">Curated</Badge>
+                <h2 className="text-xl font-semibold">{t("featured")}</h2>
+                <Badge variant="secondary">{t("curated")}</Badge>
                 <Badge variant="outline" className="text-xs">
                   {region} · {season} · {price}
                 </Badge>
@@ -1163,10 +1177,10 @@ function ExplorePage() {
                   {isExploring ? (
                     <>
                       <Loader2 className="size-4 animate-spin" />
-                      Exploring…
+                      {t("exploring")}
                     </>
                   ) : (
-                    "Explore Now"
+                    t("exploreNow")
                   )}
                 </Button>
               </div>
@@ -1174,9 +1188,9 @@ function ExplorePage() {
                 {featured.length === 0 ? (
                       <Card className="border-dashed py-8 text-center sm:col-span-2">
                         <CardContent>
-                          <p className="font-medium">No featured destinations</p>
+                          <p className="font-medium">{t("noFeatured")}</p>
                           <p className="mt-1 text-sm text-muted-foreground">
-                            Try a different region, season, or price
+                            {t("noFeaturedHint")}
                           </p>
                         </CardContent>
                       </Card>
@@ -1193,7 +1207,7 @@ function ExplorePage() {
             <section>
               <div className="mb-4 flex items-center gap-2">
                 <TrendingUp className="size-5 text-primary" />
-                <h2 className="text-xl font-semibold">Trending now</h2>
+                <h2 className="text-xl font-semibold">{t("trending")}</h2>
               </div>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {trending.map((d) => (
@@ -1205,7 +1219,7 @@ function ExplorePage() {
 
             {!hasApiData && (
             <section>
-              <h2 className="mb-4 text-xl font-semibold">Recommended for you</h2>
+              <h2 className="mb-4 text-xl font-semibold">{t("recommended")}</h2>
               <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                 {recommended.map((d) => (
                   <DestinationCard key={d.id} destination={d} />
@@ -1217,7 +1231,7 @@ function ExplorePage() {
             {!hasApiData && (
             <section>
               <h2 className="mb-4 text-xl font-semibold">
-                All destinations
+                {t("allDestinations")}
                 {!hasApiData && (
                 <span className="ml-2 text-sm font-normal text-muted-foreground">
                   ({filtered.length})
@@ -1227,9 +1241,9 @@ function ExplorePage() {
               {hasApiData ? null : filtered.length === 0 ? (
                 <Card className="border-dashed py-12 text-center">
                   <CardContent>
-                    <p className="font-medium">No destinations match your filters</p>
+                    <p className="font-medium">{t("noMatches")}</p>
                     <p className="mt-1 text-sm text-muted-foreground">
-                      Try adjusting region, season, or price
+                      {t("noMatchesHint")}
                     </p>
                   </CardContent>
                 </Card>

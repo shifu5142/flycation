@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useTranslations } from "next-intl"
 import { Camera, KeyRound, Moon, ShieldAlert, Sun, Trash2 } from "lucide-react"
 
 import { DashboardShell } from "@/components/Sidebar"
@@ -40,14 +41,16 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 const currencies = ["USD", "EUR", "GBP", "JPY", "AUD"]
-const travelStyles = [
-  { value: "budget", label: "Budget", description: "Save money, maximize experiences" },
-  { value: "balanced", label: "Balanced", description: "Mix of comfort and value" },
-  { value: "luxury", label: "Luxury", description: "Premium stays and experiences" },
+const travelStyleOptions = [
+  { value: "budget", labelKey: "budget" as const, descKey: "budgetDesc" as const },
+  { value: "balanced", labelKey: "balanced" as const, descKey: "balancedDesc" as const },
+  { value: "luxury", labelKey: "luxury" as const, descKey: "luxuryDesc" as const },
 ] as const
 
 function SettingsPage() {
   const router = useRouter()
+  const t = useTranslations("settings")
+  const tCommon = useTranslations("common")
   const { toast } = useToast()
   const { colorTheme, darkMode, setColorTheme, toggleDarkMode } = useTheme()
   const [name, setName] = useState("")
@@ -83,7 +86,7 @@ function SettingsPage() {
   }, [])
 
   const handleSaveProfile = () => {
-    toast("Profile updated!")
+    toast(t("profileSaved"))
   }
 
   const handleDeleteAccount = async () => {
@@ -136,26 +139,25 @@ function SettingsPage() {
     <DashboardShell>
       <div className="mx-auto max-w-3xl space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">Settings</h1>
+          <h1 className="text-2xl font-bold">{t("title")}</h1>
           <p className="text-muted-foreground">
-            Manage your account and preferences
+            {t("subtitle")}
           </p>
         </div>
 
         <Tabs defaultValue="profile">
           <TabsList className="w-full">
-            <TabsTrigger value="profile" className="flex-1">Profile</TabsTrigger>
-            <TabsTrigger value="preferences" className="flex-1">Preferences</TabsTrigger>
-            <TabsTrigger value="appearance" className="flex-1">Appearance</TabsTrigger>
-            <TabsTrigger value="account" className="flex-1">Account</TabsTrigger>
+            <TabsTrigger value="profile" className="flex-1">{t("profile")}</TabsTrigger>
+            <TabsTrigger value="preferences" className="flex-1">{t("preferences")}</TabsTrigger>
+            <TabsTrigger value="appearance" className="flex-1">{t("appearance")}</TabsTrigger>
+            <TabsTrigger value="account" className="flex-1">{t("account")}</TabsTrigger>
           </TabsList>
 
           {/* Profile */}
           <TabsContent value="profile">
             <Card>
               <CardHeader>
-                <CardTitle>Profile</CardTitle>
-                <CardDescription>Update your personal information</CardDescription>
+                <CardTitle>{t("profile")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
@@ -167,11 +169,11 @@ function SettingsPage() {
                   </Avatar>
                   <Button variant="outline" size="sm" onClick={() => toast("Avatar upload is UI only")}>
                     <Camera className="size-4" />
-                    Upload photo
+                    {t("uploadPhoto")}
                   </Button>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="name">Name</Label>
+                  <Label htmlFor="name">{t("name")}</Label>
                   <Input
                     id="name"
                     value={name}
@@ -180,16 +182,16 @@ function SettingsPage() {
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="email">Email</Label>
+                  <Label htmlFor="email">{t("email")}</Label>
                   <Input
                     id="email"
                     value={userEmail}
                     readOnly
                     className="bg-muted"
                   />
-                  <p className="text-xs text-muted-foreground">Email cannot be changed</p>
+                  <p className="text-xs text-muted-foreground">{t("emailReadonly")}</p>
                 </div>
-                <Button onClick={handleSaveProfile}>Save changes</Button>
+                <Button onClick={handleSaveProfile}>{t("saveChanges")}</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -198,12 +200,11 @@ function SettingsPage() {
           <TabsContent value="preferences">
             <Card>
               <CardHeader>
-                <CardTitle>Preferences</CardTitle>
-                <CardDescription>Customize your travel defaults</CardDescription>
+                <CardTitle>{t("preferences")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-2">
-                  <Label>Currency</Label>
+                  <Label>{t("currency")}</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="outline" className="w-full justify-between">
@@ -229,15 +230,15 @@ function SettingsPage() {
                 <Separator />
 
                 <div className="space-y-3">
-                  <Label>Travel style</Label>
+                  <Label>{t("travelStyle")}</Label>
                   <div className="grid gap-3">
-                    {travelStyles.map((style) => (
+                    {travelStyleOptions.map((style) => (
                       <button
                         key={style.value}
                         type="button"
                         onClick={() => {
                           setTravelStyle(style.value)
-                          toast(`Travel style: ${style.label}`)
+                          toast(`Travel style: ${t(style.labelKey)}`)
                         }}
                         className={`flex items-start gap-3 rounded-xl border p-4 text-left transition-all hover:shadow-sm ${
                           travelStyle === style.value
@@ -246,11 +247,11 @@ function SettingsPage() {
                         }`}
                       >
                         <div className="flex-1">
-                          <p className="font-medium">{style.label}</p>
-                          <p className="text-sm text-muted-foreground">{style.description}</p>
+                          <p className="font-medium">{t(style.labelKey)}</p>
+                          <p className="text-sm text-muted-foreground">{t(style.descKey)}</p>
                         </div>
                         {travelStyle === style.value && (
-                          <Badge>Active</Badge>
+                          <Badge>{t("active")}</Badge>
                         )}
                       </button>
                     ))}
@@ -264,18 +265,14 @@ function SettingsPage() {
           <TabsContent value="appearance">
             <Card>
               <CardHeader>
-                <CardTitle>Appearance</CardTitle>
-                <CardDescription>Customize how Flycation looks</CardDescription>
+                <CardTitle>{t("appearance")}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between rounded-xl border p-4">
                   <div className="flex items-center gap-3">
                     {darkMode ? <Moon className="size-5" /> : <Sun className="size-5" />}
                     <div>
-                      <p className="font-medium">Dark mode</p>
-                      <p className="text-sm text-muted-foreground">
-                        Switch between light and dark mode
-                      </p>
+                      <p className="font-medium">{t("darkMode")}</p>
                     </div>
                   </div>
                   <Button
@@ -286,12 +283,12 @@ function SettingsPage() {
                       toast(!darkMode ? "Dark mode enabled" : "Light mode enabled")
                     }}
                   >
-                    {darkMode ? "On" : "Off"}
+                    {darkMode ? t("on") : t("off")}
                   </Button>
                 </div>
 
                 <div className="space-y-3">
-                  <Label>Theme</Label>
+                  <Label>{t("theme")}</Label>
                   <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {colorThemes.map((t) => (
                       <button
@@ -318,17 +315,14 @@ function SettingsPage() {
           <TabsContent value="account">
             <Card className="border-destructive/30">
               <CardHeader>
-                <CardTitle className="text-destructive">Danger zone</CardTitle>
-                <CardDescription>
-                  Irreversible actions for your account
-                </CardDescription>
+                <CardTitle className="text-destructive">{t("dangerZone")}</CardTitle>
               </CardHeader>
               <CardContent>
                 <Dialog open={deleteDialogOpen} onOpenChange={handleDeleteDialogChange}>
                   <DialogTrigger asChild>
                     <Button variant="destructive">
                       <Trash2 className="size-4" />
-                      Delete account
+                      {t("deleteAccount")}
                     </Button>
                   </DialogTrigger>
                   <DialogContent
@@ -341,11 +335,10 @@ function SettingsPage() {
                           <Trash2 className="size-5 text-destructive" />
                         </div>
                         <DialogTitle className="text-xl text-destructive">
-                          Delete account?
+                          {t("deleteTitle")}
                         </DialogTitle>
                         <DialogDescription className="text-muted-foreground">
-                          This will permanently remove your account and all
-                          associated data.
+                          {t("deleteDescription")}
                         </DialogDescription>
                       </DialogHeader>
                     </div>
@@ -354,12 +347,7 @@ function SettingsPage() {
                       <div className="flex gap-3 rounded-xl border border-destructive/20 bg-destructive/5 px-4 py-3.5">
                         <ShieldAlert className="mt-0.5 size-5 shrink-0 text-destructive" />
                         <p className="text-sm leading-relaxed text-muted-foreground">
-                          This action is permanent and cannot be undone. All your
-                          trips and data will be removed. To continue, type{" "}
-                          <strong className="font-medium text-destructive">
-                            CONFIRM DELETE ACCOUNT
-                          </strong>
-                          .
+                          {t("deleteDescription")}
                         </p>
                       </div>
 
@@ -369,7 +357,7 @@ function SettingsPage() {
                           className="flex items-center gap-2 text-sm font-medium"
                         >
                           <KeyRound className="size-4 text-destructive/70" />
-                          Confirmation
+                          {t("deleteConfirmLabel")}
                         </Label>
                         <Input
                           id="delete-confirm"
@@ -388,7 +376,7 @@ function SettingsPage() {
                         variant="outline"
                         onClick={() => handleDeleteDialogChange(false)}
                       >
-                        Cancel
+                        {tCommon("cancel")}
                       </Button>
                       <Button
                         variant="destructive"
@@ -396,7 +384,7 @@ function SettingsPage() {
                         onClick={handleDeleteAccount}
                       >
                         <Trash2 className="size-4" />
-                        Delete account
+                        {t("deleteAccount")}
                       </Button>
                     </DialogFooter>
                   </DialogContent>

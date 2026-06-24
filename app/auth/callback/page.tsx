@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect } from "react"
+import { useTranslations } from "next-intl"
 import { useRouter } from "next/navigation"
 import { Loader2, Plane } from "lucide-react"
 
@@ -16,6 +17,7 @@ import {
 
 function CallbackPage() {
   const router = useRouter()
+  const t = useTranslations("authCallback")
 
   useEffect(() => {
     const handle = async () => {
@@ -73,16 +75,16 @@ function CallbackPage() {
             <Plane className="size-7 text-primary" />
           </div>
           <div>
-            <CardTitle className="text-2xl">Signing you in</CardTitle>
+            <CardTitle className="text-2xl">{t("title")}</CardTitle>
             <CardDescription className="mt-1.5">
-              Please wait while we finish logging you in
+              {t("subtitle")}
             </CardDescription>
           </div>
         </CardHeader>
 
         <CardContent className="flex flex-col items-center gap-3 pb-8">
           <Loader2 className="size-7 animate-spin text-primary" />
-          <p className="text-sm text-muted-foreground">Logging you in…</p>
+          <p className="text-sm text-muted-foreground">{t("loading")}</p>
         </CardContent>
       </Card>
     </AuthLayout>
