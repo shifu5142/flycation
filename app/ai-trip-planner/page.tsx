@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react"
 import { useLocale, useTranslations } from "next-intl"
-import { ChevronDown, Save, Sparkles } from "lucide-react"
+import { Save, Sparkles } from "lucide-react"
 
 import { AiTripPlanResults } from "@/components/AiTripPlanResults"
 import { DashboardShell } from "@/components/Sidebar"
@@ -136,26 +136,16 @@ function AiTripPlannerPage() {
           setTripAnswers={setTripAnswers}
           generating={generating}
           generateError={generateError}
+          planReady={showPlan && !!generatedPlan && !generating}
+          onScrollToPlan={() =>
+            planRef.current?.scrollIntoView({
+              behavior: "smooth",
+              block: "start",
+            })
+          }
           onGenerate={handleGenerate}
           onReset={handlePlanReset}
         />
-
-        {showPlan && generatedPlan && !generating && (
-          <button
-            type="button"
-            onClick={() =>
-              planRef.current?.scrollIntoView({
-                behavior: "smooth",
-                block: "start",
-              })
-            }
-            className="-mt-12 mx-auto flex w-full flex-col items-center gap-1 pb-1 text-muted-foreground transition-colors hover:text-primary"
-            aria-label={t("scrollToPlan")}
-          >
-            <span className="text-xs font-medium">{t("planReady")}</span>
-            <ChevronDown className="size-6 animate-bounce" />
-          </button>
-        )}
 
         {showPlan && generatedPlan && !generating && (
           <div ref={planRef} className="space-y-6 scroll-mt-6">

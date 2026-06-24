@@ -5,7 +5,9 @@ import { usePathname, useRouter } from "@/i18n/navigation"
 import {
   BookOpen,
   Compass,
+  Gift,
   LayoutDashboard,
+  LifeBuoy,
   LogOut,
   Map,
   Menu,
@@ -21,6 +23,7 @@ import { createClient } from "@/lib/supabase/client"
 import { cn } from "@/lib/utils"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -31,7 +34,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Separator } from "@/components/ui/separator"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
-
+import {supabase} from "@/app/services/supabase/client"
+import { Trip } from "@/lib/tripBooking"
 const navItems = [
   { href: "/ai-trip-planner" as const, labelKey: "aiTripPlanner" as const, icon: Sparkles },
   { href: "/my-trips" as const, labelKey: "myTrips" as const, icon: Map },
@@ -58,7 +62,23 @@ function AppHeader() {
   const { displayName, firstName, email, avatar, loading } = useAuth()
   const name = displayName || firstName || email.split("@")[0] || t("traveler")
   const initials = (firstName || name).charAt(0).toUpperCase() || "?"
-
+  const [trips, setTrips] = useState<string[]>([])
+  useEffect(() => {
+    const loadUserData = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data, error } = await supabase
+      .from("trips")
+      .select("*", { count: "exact" })
+      .eq("user_id", user.id)
+      if (error) {
+        console.error(error)
+        return
+      }
+      setTrips(data.map((trip: Trip) => trip))
+    }
+    loadUserData()
+  }, [])
   const handleLogout = async () => {
     try {
       const supabase = createClient()
@@ -138,6 +158,19 @@ function AppHeader() {
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
               <DropdownMenuItem asChild>
+                <Link href="/loyalty" className="cursor-pointer">
+                  <Gift className="size-4" />
+                  {t("loyalty")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/support" className="cursor-pointer">
+                  <LifeBuoy className="size-4" />
+                  {t("support")}
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem asChild>
                 <Link href="/settings" className="cursor-pointer">
                   <Settings className="size-4" />
                   {t("settings")}
@@ -209,6 +242,16 @@ function AppHeader() {
                     </p>
                   </div>
                 </div>
+                <Button
+                  variant="outline"
+                  className="w-full justify-start gap-2 rounded-xl"
+                  asChild
+                >
+                  <Link href="/support">
+                    <LifeBuoy className="size-4" />
+                    {t("support")}
+                  </Link>
+                </Button>
                 <Button
                   variant="outline"
                   className="w-full justify-start gap-2 rounded-xl"

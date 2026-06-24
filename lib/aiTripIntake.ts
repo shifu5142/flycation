@@ -50,6 +50,7 @@ export type ChatMessage = {
   id: string
   role: "assistant" | "user"
   content: string
+  kind?: "planReady"
 }
 
 export const INITIAL_TRIP_INTAKE: TripIntakeData = {

@@ -6,6 +6,7 @@ import {
   Bot,
   CalendarDays,
   Check,
+  ChevronDown,
   Heart,
   Loader2,
   MapPin,
@@ -55,6 +56,8 @@ type TripIntakeAssistantProps = {
   setTripAnswers: Dispatch<SetStateAction<TripIntakeData>>
   generating: boolean
   generateError?: boolean
+  planReady?: boolean
+  onScrollToPlan?: () => void
   onGenerate: () => void
   onReset?: () => void
 }
@@ -287,40 +290,126 @@ function TripSummaryPanel({
   )
 }
 
-function ChatBubble({ message }: { message: ChatMessage }) {
+function PlanReadyBubble({
+  content,
+  actionLabel,
+  onScroll,
+}: {
+  content: string
+  actionLabel: string
+  onScroll: () => void
+}) {
+  return (
+    <div className="flex animate-in fade-in slide-in-from-bottom-3 gap-3 duration-500">
+      <div className="relative flex size-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/15 text-primary shadow-sm ring-1 ring-primary/20">
+        <Bot className="size-4" />
+        <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-card bg-emerald-500" />
+      </div>
+      <div className="max-w-[min(85%,28rem)] rounded-2xl rounded-tl-md border border-primary/20 bg-gradient-to-br from-card/95 to-primary/[0.04] px-4 py-3.5 shadow-md shadow-primary/10 backdrop-blur-sm">
+        <p className="text-sm leading-relaxed">{content}</p>
+        <button
+          type="button"
+          onClick={onScroll}
+          className="group mt-3 flex w-full flex-col items-center gap-0.5 rounded-xl border border-primary/25 bg-primary/5 px-3 py-2.5 text-primary transition-all hover:border-primary/40 hover:bg-primary/10 hover:shadow-md hover:shadow-primary/10"
+        >
+          <span className="text-xs font-semibold tracking-wide">
+            {actionLabel}
+          </span>
+          <span className="relative flex h-7 flex-col items-center justify-start overflow-hidden">
+            <ChevronDown className="size-5 animate-[chevron-flow_1.4s_ease-in-out_infinite]" />
+            <ChevronDown className="-mt-3 size-5 text-primary/45 animate-[chevron-flow_1.4s_ease-in-out_infinite] [animation-delay:0.35s]" />
+          </span>
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function ChatBubble({
+  message,
+  onScrollToPlan,
+  viewPlanLabel,
+}: {
+  message: ChatMessage
+  onScrollToPlan?: () => void
+  viewPlanLabel?: string
+}) {
+  if (message.kind === "planReady" && onScrollToPlan && viewPlanLabel) {
+    return (
+      <PlanReadyBubble
+        content={message.content}
+        actionLabel={viewPlanLabel}
+        onScroll={onScrollToPlan}
+      />
+    )
+  }
+
   const isAssistant = message.role === "assistant"
 
   return (
     <div
       className={cn(
-        "flex gap-3",
+        "flex gap-3 animate-in fade-in slide-in-from-bottom-2 duration-300",
         isAssistant ? "justify-start" : "justify-end"
       )}
     >
       {isAssistant && (
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary ring-1 ring-primary/20">
+        <div className="relative flex size-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/15 text-primary shadow-sm ring-1 ring-primary/20">
           <Bot className="size-4" />
+          <span className="absolute -right-0.5 -bottom-0.5 size-2.5 rounded-full border-2 border-card bg-emerald-500" />
         </div>
       )}
       <div
         className={cn(
-          "max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed shadow-sm",
+          "group relative max-w-[min(85%,28rem)] px-4 py-3 text-sm leading-relaxed shadow-sm transition-shadow hover:shadow-md",
           isAssistant
-            ? "rounded-tl-md border border-border/60 bg-card"
-            : "rounded-tr-md bg-primary text-primary-foreground"
+            ? "rounded-2xl rounded-tl-md border border-border/50 bg-card/90 backdrop-blur-sm"
+            : "rounded-2xl rounded-tr-md bg-gradient-to-br from-primary to-primary/85 text-primary-foreground shadow-md shadow-primary/20"
         )}
       >
+        {!isAssistant && (
+          <div
+            className="pointer-events-none absolute inset-0 rounded-2xl rounded-tr-md bg-white/10 opacity-0 transition-opacity group-hover:opacity-100"
+            aria-hidden
+          />
+        )}
         {message.content.split("\n").map((line, i) => (
-          <p key={i} className={i > 0 ? "mt-2" : undefined}>
-            {line.replace(/\*\*(.*?)\*\*/g, "$1")}
+          <p key={i} className={cn("relative", i > 0 && "mt-2")}>
+            {line.split(/(\*\*.*?\*\*)/g).map((part, j) =>
+              part.startsWith("**") && part.endsWith("**") ? (
+                <strong key={j} className="font-semibold">
+                  {part.slice(2, -2)}
+                </strong>
+              ) : (
+                <span key={j}>{part}</span>
+              )
+            )}
           </p>
         ))}
       </div>
       {!isAssistant && (
-        <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-muted text-muted-foreground">
+        <div className="flex size-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-muted to-muted/60 text-muted-foreground ring-1 ring-border/60">
           <User className="size-4" />
         </div>
       )}
+    </div>
+  )
+}
+
+function TypingIndicator({ label }: { label: string }) {
+  return (
+    <div className="flex animate-in fade-in slide-in-from-bottom-2 gap-3 duration-300">
+      <div className="relative flex size-9 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-primary/20 to-violet-500/15 text-primary ring-1 ring-primary/20">
+        <Bot className="size-4" />
+      </div>
+      <div className="flex items-center gap-3 rounded-2xl rounded-tl-md border border-border/50 bg-card/90 px-4 py-3 shadow-sm backdrop-blur-sm">
+        <div className="flex items-center gap-1">
+          <span className="size-2 animate-bounce rounded-full bg-primary/70 [animation-delay:0ms]" />
+          <span className="size-2 animate-bounce rounded-full bg-primary/70 [animation-delay:150ms]" />
+          <span className="size-2 animate-bounce rounded-full bg-primary/70 [animation-delay:300ms]" />
+        </div>
+        <span className="text-sm text-muted-foreground">{label}</span>
+      </div>
     </div>
   )
 }
@@ -334,6 +423,8 @@ export const TripIntakeAssistant = forwardRef<
     setTripAnswers,
     generating,
     generateError,
+    planReady = false,
+    onScrollToPlan,
     onGenerate,
     onReset,
   },
@@ -365,6 +456,7 @@ export const TripIntakeAssistant = forwardRef<
   const [textInput, setTextInput] = useState("")
   const [translating, setTranslating] = useState(false)
   const [travelersStep, setTravelersStep] = useState<TravelersStep>("type")
+  const [lastInputField, setLastInputField] = useState<IntakeField | null>(null)
   const [selectedInterests, setSelectedInterests] = useState<TripInterest[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
@@ -373,6 +465,40 @@ export const TripIntakeAssistant = forwardRef<
 
   const currentField = getNextField(tripAnswers)
   const complete = isIntakeComplete(tripAnswers)
+  const activeField = currentField ?? (complete ? lastInputField : null)
+  const activeTravelersStep =
+    currentField === "travelers" ? travelersStep : "type"
+  const inputsLocked = complete || generating
+  const showInputArea = Boolean(activeField) && (complete || !generating)
+  const displayInterests = complete
+    ? tripAnswers.interests
+    : selectedInterests
+
+  useEffect(() => {
+    if (currentField) {
+      setLastInputField(currentField)
+    }
+  }, [currentField])
+
+  useEffect(() => {
+    if (!planReady) {
+      setMessages((prev) => prev.filter((m) => m.kind !== "planReady"))
+      return
+    }
+
+    setMessages((prev) => {
+      if (prev.some((m) => m.kind === "planReady")) return prev
+      return [
+        ...prev,
+        {
+          id: createMessageId(),
+          role: "assistant",
+          content: t("planReadyMessage"),
+          kind: "planReady",
+        },
+      ]
+    })
+  }, [planReady, t])
 
   useEffect(() => {
     intakeRef.current = tripAnswers
@@ -601,6 +727,7 @@ export const TripIntakeAssistant = forwardRef<
     ])
     setTextInput("")
     setTravelersStep("type")
+    setLastInputField(null)
     setSelectedInterests([])
     onReset?.()
   }, [onReset, setTripAnswers, t])
@@ -608,35 +735,70 @@ export const TripIntakeAssistant = forwardRef<
   useImperativeHandle(ref, () => ({ startOver: handleReset }), [handleReset])
 
   const showTextInput =
-    currentField &&
-    !complete &&
-    (currentField === "destination" ||
-      currentField === "duration" ||
-      currentField === "budget" ||
-      (currentField === "travelers" && travelersStep === "count"))
+    activeField &&
+    (activeField === "destination" ||
+      activeField === "duration" ||
+      activeField === "budget" ||
+      (activeField === "travelers" && activeTravelersStep === "count"))
+
+  const lockedComposerValue = (() => {
+    if (!complete || !activeField) return textInput
+    if (activeField === "destination") return tripAnswers.destination ?? ""
+    if (activeField === "duration") {
+      const d = tripAnswers.duration
+      return d && (DURATION_OPTIONS as readonly string[]).includes(d)
+        ? t(`durationOptions.${d}` as "durationOptions.3 days")
+        : d ?? ""
+    }
+    if (activeField === "budget") {
+      const b = tripAnswers.budget
+      return b && (BUDGET_OPTIONS as readonly string[]).includes(b)
+        ? t(`budgetOptions.${b}` as "budgetOptions.$1,000")
+        : b ?? ""
+    }
+    if (activeField === "travelers" && tripAnswers.travelers?.type === "group") {
+      return String(tripAnswers.travelers.count)
+    }
+    return textInput
+  })()
 
   const textPlaceholder = (() => {
-    if (currentField === "destination") return t("placeholders.destination")
-    if (currentField === "duration") return t("placeholders.duration")
-    if (currentField === "budget") return t("placeholders.budget")
-    if (currentField === "travelers" && travelersStep === "count")
+    if (activeField === "destination") return t("placeholders.destination")
+    if (activeField === "duration") return t("placeholders.duration")
+    if (activeField === "budget") return t("placeholders.budget")
+    if (activeField === "travelers" && activeTravelersStep === "count")
       return t("placeholders.travelersCount")
     return t("placeholders.default")
   })()
 
   return (
     <div className="grid gap-6 lg:grid-cols-[1fr_320px] lg:items-start">
-      <Card className="flex min-h-[520px] flex-col overflow-hidden rounded-2xl border-primary/15 shadow-xl shadow-primary/5">
-        <CardHeader className="border-b border-border/50 bg-gradient-to-r from-primary/[0.06] via-transparent to-violet-500/[0.04] py-4">
-          <div className="flex items-center gap-3">
-            <div className="flex size-10 items-center justify-center rounded-xl bg-primary/10 text-primary ring-1 ring-primary/20">
-              <Bot className="size-5" />
+      <Card className="flex min-h-[560px] flex-col overflow-hidden rounded-3xl border-border/60 bg-card/50 shadow-xl shadow-primary/5 ring-1 ring-primary/10 backdrop-blur-sm">
+        <CardHeader className="relative border-b border-border/40 bg-gradient-to-r from-primary/[0.08] via-background/80 to-violet-500/[0.06] px-5 py-4 backdrop-blur-md">
+          <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/10 via-transparent to-transparent" />
+          <div className="relative flex items-center gap-3">
+            <div className="flex size-11 items-center justify-center rounded-2xl bg-gradient-to-br from-primary to-primary/80 text-primary-foreground shadow-lg shadow-primary/25">
+              <Sparkles className="size-5" />
             </div>
-            <div>
-              <CardTitle className="text-base">{t("assistantTitle")}</CardTitle>
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <CardTitle className="text-base font-semibold">
+                  {t("assistantTitle")}
+                </CardTitle>
+                <Badge
+                  variant="outline"
+                  className="rounded-full border-emerald-500/30 bg-emerald-500/10 px-2 py-0 text-[10px] font-medium text-emerald-700 dark:text-emerald-300"
+                >
+                  <span className="mr-1.5 inline-block size-1.5 animate-pulse rounded-full bg-emerald-500" />
+                  {t("online")}
+                </Badge>
+              </div>
               <CardDescription className="text-xs">
                 {t("assistantSubtitle")}
               </CardDescription>
+              <p className="mt-1.5 text-[11px] leading-snug text-muted-foreground/75">
+                {t("resultsTimingNote")}
+              </p>
             </div>
           </div>
         </CardHeader>
@@ -644,32 +806,38 @@ export const TripIntakeAssistant = forwardRef<
         <CardContent className="flex flex-1 flex-col p-0">
           <div
             ref={scrollRef}
-            className="flex-1 space-y-4 overflow-y-auto px-4 py-5 sm:px-5"
-            style={{ maxHeight: "min(52vh, 480px)" }}
+            className="relative flex-1 space-y-5 overflow-y-auto bg-gradient-to-b from-muted/25 via-background to-background px-4 py-6 sm:px-6"
+            style={{ maxHeight: "min(56vh, 520px)" }}
           >
+            <div
+              className="pointer-events-none absolute inset-0 opacity-[0.35] [background-image:radial-gradient(circle_at_1px_1px,var(--border)_1px,transparent_0)] [background-size:24px_24px]"
+              aria-hidden
+            />
+            <div className="relative space-y-5">
             {messages.map((msg) => (
-              <ChatBubble key={msg.id} message={msg} />
+              <ChatBubble
+                key={msg.id}
+                message={msg}
+                onScrollToPlan={onScrollToPlan}
+                viewPlanLabel={t("viewYourPlan")}
+              />
             ))}
             {generating && (
-              <div className="flex gap-3">
-                <div className="flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Bot className="size-4" />
-                </div>
-                <div className="flex items-center gap-2 rounded-2xl rounded-tl-md border border-border/60 bg-card px-4 py-3">
-                  <Loader2 className="size-4 animate-spin text-primary" />
-                  <span className="text-sm text-muted-foreground">
-                    {t("buildingItinerary")}
-                  </span>
-                </div>
-              </div>
+              <TypingIndicator label={t("buildingItinerary")} />
             )}
+            </div>
           </div>
 
-          {!complete && !generating && (
-            <div className="border-t border-border/60 bg-muted/20 p-4 sm:p-5">
-              {currentField === "travelStyle" && (
+          {showInputArea && (
+            <div
+              className={cn(
+                "border-t border-border/50 bg-gradient-to-t from-muted/40 to-background/95 p-4 backdrop-blur-sm transition-opacity sm:p-5",
+                inputsLocked && "pointer-events-none opacity-45"
+              )}
+            >
+              {activeField === "travelStyle" && (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-muted-foreground">
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {t("chooseOne")}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -679,7 +847,8 @@ export const TripIntakeAssistant = forwardRef<
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-full"
+                        disabled={inputsLocked}
+                        className="rounded-full border-border/70 bg-background/80 px-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
                         onClick={() => selectTravelStyle(style)}
                       >
                         {t(`travelStyles.${style}`)}
@@ -689,9 +858,9 @@ export const TripIntakeAssistant = forwardRef<
                 </div>
               )}
 
-              {currentField === "travelers" && travelersStep === "type" && (
+              {activeField === "travelers" && activeTravelersStep === "type" && (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-muted-foreground">
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {t("selectTravelerType")}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -707,7 +876,8 @@ export const TripIntakeAssistant = forwardRef<
                         type="button"
                         variant="outline"
                         size="sm"
-                        className="rounded-full"
+                        disabled={inputsLocked}
+                        className="rounded-full border-border/70 bg-background/80 px-4 shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
                         onClick={() => selectTravelerType(type)}
                       >
                         {t(`travelerTypes.${labelKey}`)}
@@ -717,9 +887,9 @@ export const TripIntakeAssistant = forwardRef<
                 </div>
               )}
 
-              {currentField === "interests" && (
+              {activeField === "interests" && (
                 <div className="space-y-3">
-                  <p className="text-xs font-medium text-muted-foreground">
+                  <p className="text-xs font-semibold tracking-wide text-muted-foreground uppercase">
                     {t("selectAllApply")}
                   </p>
                   <div className="flex flex-wrap gap-2">
@@ -728,12 +898,18 @@ export const TripIntakeAssistant = forwardRef<
                         key={interest}
                         type="button"
                         variant={
-                          selectedInterests.includes(interest)
+                          displayInterests.includes(interest)
                             ? "default"
                             : "outline"
                         }
                         size="sm"
-                        className="rounded-full"
+                        disabled={inputsLocked}
+                        className={cn(
+                          "rounded-full px-4 transition-all",
+                          displayInterests.includes(interest)
+                            ? "shadow-md shadow-primary/20"
+                            : "border-border/70 bg-background/80 shadow-sm hover:-translate-y-0.5 hover:border-primary/40 hover:bg-primary/5 hover:shadow-md"
+                        )}
                         onClick={() => toggleInterest(interest)}
                       >
                         {t(`interestOptions.${interest}`)}
@@ -741,18 +917,18 @@ export const TripIntakeAssistant = forwardRef<
                     ))}
                   </div>
                   <Button
-                    className="w-full rounded-xl"
-                    disabled={selectedInterests.length === 0}
+                    className="w-full rounded-xl shadow-md shadow-primary/15"
+                    disabled={inputsLocked || displayInterests.length === 0}
                     onClick={confirmInterests}
                   >
-                    {t("continueWith", { count: selectedInterests.length || 0 })}
+                    {t("continueWith", { count: displayInterests.length || 0 })}
                   </Button>
                 </div>
               )}
 
-              {(currentField === "duration" || currentField === "budget") && (
+              {(activeField === "duration" || activeField === "budget") && (
                 <div className="mb-3 flex flex-wrap gap-2">
-                  {(currentField === "duration"
+                  {(activeField === "duration"
                     ? DURATION_OPTIONS
                     : BUDGET_OPTIONS
                   ).map((option) => (
@@ -761,9 +937,10 @@ export const TripIntakeAssistant = forwardRef<
                       type="button"
                       variant="secondary"
                       size="sm"
-                      className="h-8 rounded-full text-xs"
+                      disabled={inputsLocked}
+                      className="h-9 rounded-full border border-border/50 bg-background/90 px-4 text-xs shadow-sm transition-all hover:-translate-y-0.5 hover:border-primary/30 hover:bg-primary/10 hover:shadow-md"
                       onClick={() => {
-                        if (currentField === "duration") {
+                        if (activeField === "duration") {
                           acknowledgeAndAdvance(
                             t(`durationOptions.${option}` as "durationOptions.3 days"),
                             (prev) => ({
@@ -782,7 +959,7 @@ export const TripIntakeAssistant = forwardRef<
                         }
                       }}
                     >
-                      {currentField === "duration"
+                      {activeField === "duration"
                         ? t(`durationOptions.${option}` as "durationOptions.3 days")
                         : t(`budgetOptions.${option}` as "budgetOptions.$1,000")}
                     </Button>
@@ -792,7 +969,10 @@ export const TripIntakeAssistant = forwardRef<
 
               {showTextInput && (
                 <form
-                  className="flex gap-2"
+                  className={cn(
+                    "flex items-center gap-2 rounded-2xl border border-border/60 bg-background/90 p-1.5 shadow-inner ring-primary/20 transition-all focus-within:border-primary/40 focus-within:ring-2",
+                    inputsLocked && "focus-within:border-border/60 focus-within:ring-0"
+                  )}
                   onSubmit={(e) => {
                     e.preventDefault()
                     handleTextSubmit()
@@ -800,17 +980,18 @@ export const TripIntakeAssistant = forwardRef<
                 >
                   <Input
                     ref={inputRef}
-                    value={textInput}
+                    value={lockedComposerValue}
                     onChange={(e) => setTextInput(e.target.value)}
                     placeholder={textPlaceholder}
-                    className="h-11 rounded-xl bg-background"
-                    disabled={generating || translating}
+                    className="h-11 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                    disabled={inputsLocked || translating}
+                    readOnly={complete}
                   />
                   <Button
                     type="submit"
                     size="icon"
-                    className="size-11 shrink-0 rounded-xl"
-                    disabled={!textInput.trim() || translating}
+                    className="size-11 shrink-0 rounded-xl bg-gradient-to-br from-primary to-primary/85 shadow-md shadow-primary/25 transition-all hover:shadow-lg disabled:opacity-50"
+                    disabled={inputsLocked || !lockedComposerValue.trim() || translating}
                   >
                     {translating ? (
                       <Loader2 className="size-4 animate-spin" />
