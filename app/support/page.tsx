@@ -403,7 +403,6 @@ export default function SupportPage() {
       const {
         data: { user },
       } = await supabase.auth.getUser()
-
       if (!user) {
         toast(t("errors.notLoggedIn"), "info")
         return
@@ -422,7 +421,7 @@ export default function SupportPage() {
         .single()
 
       if (error) {
-        toast(error.message, "info")
+        console.log(JSON.stringify(error, null, 2))
         return
       }
 
@@ -559,7 +558,11 @@ export default function SupportPage() {
                           {group.keys.map((key) => {
                             const Icon = SUBJECT_ICONS[key]
                             return (
-                              <SelectItem key={key} value={key}>
+                              <SelectItem
+                                key={key}
+                                value={key}
+                                textValue={t(`subjectOptions.${key}`)}
+                              >
                                 <span className="flex size-7 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-primary">
                                   <Icon className="size-3.5" />
                                 </span>

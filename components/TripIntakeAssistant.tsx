@@ -983,7 +983,7 @@ export const TripIntakeAssistant = forwardRef<
                     value={lockedComposerValue}
                     onChange={(e) => setTextInput(e.target.value)}
                     placeholder={textPlaceholder}
-                    className="h-11 flex-1 border-0 bg-transparent shadow-none focus-visible:ring-0"
+                    className="h-11 flex-1 border-0 bg-transparent text-foreground shadow-none focus-visible:ring-0"
                     disabled={inputsLocked || translating}
                     readOnly={complete}
                   />

@@ -14,6 +14,7 @@ import {
   Plane,
   Settings,
   Sparkles,
+  Tag,
 } from "lucide-react"
 
 import { LanguageSwitcher } from "@/components/LanguageSwitcher"
@@ -41,6 +42,7 @@ const navItems = [
   { href: "/my-trips" as const, labelKey: "myTrips" as const, icon: Map },
   { href: "/explore" as const, labelKey: "explore" as const, icon: Compass },
   { href: "/my-bookings" as const, labelKey: "myBookings" as const, icon: BookOpen },
+  { href: "/deals" as const, labelKey: "deals" as const, icon: Tag },
 ]
 
 function isNavActive(pathname: string, href: (typeof navItems)[number]["href"]) {
@@ -50,6 +52,9 @@ function isNavActive(pathname: string, href: (typeof navItems)[number]["href"]) 
   }
   if (href === "/my-bookings") {
     return pathname.startsWith("/my-bookings")
+  }
+  if (href === "/deals") {
+    return pathname === "/deals" || pathname.startsWith("/deals#")
   }
   return false
 }
